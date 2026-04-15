@@ -93,6 +93,8 @@
   .dashboard-table tr:nth-child(even){background:#f9f9f9}
   .status-dot{width:14px;height:14px;border-radius:50%;display:inline-block}
   .dot-green{background:#27AE60}.dot-yellow{background:var(--yellow)}.dot-red{background:var(--red)}.dot-gray{background:#ccc}
+  .station-cell{display:flex;flex-direction:column;align-items:center;gap:1px}
+  .station-cell .op-name{font-size:9px;color:#888;line-height:1.1;max-width:36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .dashboard-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px 16px}
   .summary-card{background:#fff;border-radius:var(--radius);padding:16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
   .summary-card .num{font-size:28px;font-weight:800}
@@ -563,21 +565,23 @@ function renderDashboard() {
     <div class="summary-card"><div class="num" style="color:${abnormal?'var(--red)':'#27AE60'}">${abnormal}</div><div class="label">異常站次</div></div>`;
   let t=`<tr><th>批次</th><th>口味</th>`;
   sNames.forEach(s=>t+=`<th>${s.charAt(0)}</th>`);
-  t+=`<th>人員</th></tr>`;
+  t+=`</tr>`;
   let lr=0;
   wo.forEach(batch=>{
-    if(batch.round!==lr){t+=`<tr style="background:#e8e8e8"><td colspan="${sNames.length+3}" style="font-weight:700;text-align:left;padding:6px 8px;font-size:12px">第 ${batch.round} 輪</td></tr>`;lr=batch.round}
+    if(batch.round!==lr){t+=`<tr style="background:#e8e8e8"><td colspan="${sNames.length+2}" style="font-weight:700;text-align:left;padding:6px 8px;font-size:12px">第 ${batch.round} 輪</td></tr>`;lr=batch.round}
     t+=`<tr><td style="font-weight:700">${batch.id}</td><td style="font-size:11px">${batch.flavor}</td>`;
-    let ops=new Set();
     sNames.forEach(s=>{
       const rec=records.find(r=>r.batch===batch.id&&r.station===s);
-      if(!rec)t+=`<td><span class="status-dot dot-gray"></span></td>`;
-      else if(rec.summary.criticalCount>0||(rec.summary.defects&&rec.summary.defects.length>0))t+=`<td><span class="status-dot dot-red"></span></td>`;
-      else if(rec.summary.failCount>0)t+=`<td><span class="status-dot dot-yellow"></span></td>`;
-      else t+=`<td><span class="status-dot dot-green"></span></td>`;
-      if(rec)ops.add(rec.operator);
+      if(!rec){t+=`<td><div class="station-cell"><span class="status-dot dot-gray"></span></div></td>`}
+      else{
+        let dotClass='dot-green';
+        if(rec.summary.criticalCount>0||(rec.summary.defects&&rec.summary.defects.length>0))dotClass='dot-red';
+        else if(rec.summary.failCount>0)dotClass='dot-yellow';
+        const shortName=rec.operator.replace(/師傅$/,'').slice(-2);
+        t+=`<td><div class="station-cell"><span class="status-dot ${dotClass}"></span><span class="op-name">${shortName}</span></div></td>`;
+      }
     });
-    t+=`<td style="font-size:10px">${[...ops].join('<br>')}</td></tr>`;
+    t+=`</tr>`;
   });
   document.getElementById('dashTable').innerHTML=t;
 }
