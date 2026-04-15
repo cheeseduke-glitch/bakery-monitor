@@ -360,9 +360,16 @@ function clearFormFields() {
 }
 
 // ========== SUBMIT （v2.1：支援多層批量寫入） ==========
-function submitStation() {
+async function submitStation() {
   if(!AppState.selectedLayers.length){showNotify('請先選擇批次/層','warn');return}
   if(!AppState.operator){showNotify('請先選擇操作人員','warn');return}
+  // D1：勾 2 層以上先彈確認窗
+  if (AppState.selectedLayers.length >= 2) {
+    const list = AppState.selectedLayers.join('、');
+    const body = `<p>將寫入 <b>${AppState.selectedLayers.length}</b> 筆記錄：</p><p style="font-size:14px;color:#666">${list}</p>`;
+    const ok = await showConfirm(`確認寫入 ${AppState.station}站`, body, '確認送出', '取消');
+    if (!ok) return;
+  }
   const fields=STATION_FIELDS[AppState.station], data={};
   let pass=0,fail=0,crit=0;
   fields.forEach(f=>{
@@ -903,6 +910,39 @@ function showNotify(text,type) {
   const b=document.getElementById('notifyBanner');
   b.textContent=text;b.className=`notify-banner ${type}`;b.style.display='block';
   setTimeout(()=>b.style.display='none',4000);
+}
+
+// ========== CONFIRM MODAL（可重用，供多層送出 / 重新拉工單差異等 flow 使用） ==========
+let _confirmInFlight = null;
+function showConfirm(title, bodyHtml, okLabel, cancelLabel) {
+  okLabel = okLabel || '確認';
+  cancelLabel = cancelLabel || '取消';
+  // 若有前一個未決的 confirm，先自動 resolve(false)
+  if (_confirmInFlight) { try { _confirmInFlight(false); } catch(e){} _confirmInFlight = null; }
+  const overlay = document.getElementById('confirmModal');
+  const titleEl = document.getElementById('confirmTitle');
+  const contentEl = document.getElementById('confirmContent');
+  const okBtn = document.getElementById('confirmOkBtn');
+  const cancelBtn = document.getElementById('confirmCancelBtn');
+  titleEl.textContent = title || '';
+  contentEl.innerHTML = bodyHtml || '';
+  okBtn.textContent = okLabel;
+  cancelBtn.textContent = cancelLabel;
+  overlay.classList.add('show');
+  return new Promise(resolve => {
+    const cleanup = (val) => {
+      overlay.classList.remove('show');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      _confirmInFlight = null;
+      resolve(val);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    _confirmInFlight = cleanup;
+  });
 }
 
 // ========== CLOUD SYNC ==========
