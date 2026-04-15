@@ -1,6 +1,8 @@
 // ===================================================================
 // 起士公爵 生產良率監測系統 — Google Apps Script 後端
 // ===================================================================
+// D1：升級到 v2.1 schema 時，舊 13 欄「記錄」分頁與舊 5 欄「工單」分頁將被清空重建（測試資料可丟）。
+// ===================================================================
 // 使用方式：
 // 1. 開一個新的 Google Sheets（命名為「起士公爵_生產監測資料庫」）
 // 2. 點選 擴充功能 → Apps Script
@@ -17,22 +19,52 @@
 function initSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 記錄表
+  // 記錄表 (v2.1: 15 欄)
+  const expectedRecHeader = ['日期','時間戳記','操作人員','工作站','批次','批次號','層號','品項','口味','合格數','異常數','嚴重數','外觀不良','備註','原始數據'];
   let sheet = ss.getSheetByName('記錄');
   if (!sheet) {
     sheet = ss.insertSheet('記錄');
-    sheet.appendRow(['日期','時間戳記','操作人員','工作站','批次','口味','合格數','異常數','嚴重數','外觀不良','備註','原始數據']);
-    sheet.getRange(1, 1, 1, 12).setFontWeight('bold').setBackground('#3A7D5C').setFontColor('#fff');
+    sheet.appendRow(expectedRecHeader);
+    sheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#3A7D5C').setFontColor('#fff');
     sheet.setFrozenRows(1);
+  } else {
+    // D1：偵測舊 header → 清空重建 15 欄 schema
+    const lastCol = sheet.getLastColumn();
+    let needsRebuild = lastCol < 15;
+    if (!needsRebuild && lastCol > 0) {
+      const currentHeader = sheet.getRange(1, 1, 1, Math.max(lastCol, 15)).getValues()[0];
+      needsRebuild = JSON.stringify(currentHeader.slice(0, 15)) !== JSON.stringify(expectedRecHeader);
+    }
+    if (needsRebuild) {
+      sheet.clear();
+      sheet.appendRow(expectedRecHeader);
+      sheet.getRange(1, 1, 1, 15).setFontWeight('bold').setBackground('#3A7D5C').setFontColor('#fff');
+      sheet.setFrozenRows(1);
+    }
   }
 
-  // 工單表
+  // 工單表 (v2.1: 6 欄)
+  const expectedWoHeader = ['日期','批次編號','批次號','層號','品項','口味'];
   let woSheet = ss.getSheetByName('工單');
   if (!woSheet) {
     woSheet = ss.insertSheet('工單');
-    woSheet.appendRow(['日期','批次編號','輪次','烤箱','口味']);
-    woSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#2E6B8A').setFontColor('#fff');
+    woSheet.appendRow(expectedWoHeader);
+    woSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#2E6B8A').setFontColor('#fff');
     woSheet.setFrozenRows(1);
+  } else {
+    // D1：偵測舊 header → 清空重建 6 欄 schema
+    const woLastCol = woSheet.getLastColumn();
+    let woNeedsRebuild = woLastCol < 6;
+    if (!woNeedsRebuild && woLastCol > 0) {
+      const currentWoHeader = woSheet.getRange(1, 1, 1, Math.max(woLastCol, 6)).getValues()[0];
+      woNeedsRebuild = JSON.stringify(currentWoHeader.slice(0, 6)) !== JSON.stringify(expectedWoHeader);
+    }
+    if (woNeedsRebuild) {
+      woSheet.clear();
+      woSheet.appendRow(expectedWoHeader);
+      woSheet.getRange(1, 1, 1, 6).setFontWeight('bold').setBackground('#2E6B8A').setFontColor('#fff');
+      woSheet.setFrozenRows(1);
+    }
   }
 
   // 人員表
@@ -61,7 +93,7 @@ function doPost(e) {
     const action = data.action;
 
     if (action === 'syncRecords') return syncRecords(data.records);
-    if (action === 'saveWorkOrder') return saveWorkOrder(data.date, data.batches);
+    if (action === 'saveWorkOrder') return saveWorkOrder(data.date, data.layers || data.batches);
     if (action === 'saveOperators') return saveOperators(data.operators);
     if (action === 'init') { return jsonResp({ status: 'ok', message: '連線成功' }); }
 
@@ -108,38 +140,35 @@ function syncRecords(records) {
   let synced = 0;
   const newRows = [];
 
+  // v2.1: 15 欄
+  const rowOf = r => [
+    r.date, r.timestamp, r.operator, r.station, r.batch,
+    r.batchNum || '', r.layer || '', r.product || '重乳', r.flavor || '',
+    r.summary.passCount || 0, r.summary.failCount || 0, r.summary.criticalCount || 0,
+    (r.summary.defects || []).join('、'), r.notes || '',
+    JSON.stringify(r.data || {})
+  ];
+
   records.forEach(r => {
     const key = `${r.date}|${r.batch}|${r.station}`;
     if (existingKeys.has(key)) {
-      // 更新現有記錄
       for (let i = 1; i < existing.length; i++) {
         const eKey = `${existing[i][0]}|${existing[i][4]}|${existing[i][3]}`;
         if (eKey === key) {
-          const row = i + 1;
-          sheet.getRange(row, 1, 1, 12).setValues([[
-            r.date, r.timestamp, r.operator, r.station, r.batch, r.flavor || '',
-            r.summary.passCount || 0, r.summary.failCount || 0, r.summary.criticalCount || 0,
-            (r.summary.defects || []).join('、'), r.notes || '',
-            JSON.stringify(r.data || {})
-          ]]);
+          sheet.getRange(i + 1, 1, 1, 15).setValues([rowOf(r)]);
           synced++;
           break;
         }
       }
     } else {
-      newRows.push([
-        r.date, r.timestamp, r.operator, r.station, r.batch, r.flavor || '',
-        r.summary.passCount || 0, r.summary.failCount || 0, r.summary.criticalCount || 0,
-        (r.summary.defects || []).join('、'), r.notes || '',
-        JSON.stringify(r.data || {})
-      ]);
+      newRows.push(rowOf(r));
       existingKeys.add(key);
       synced++;
     }
   });
 
   if (newRows.length > 0) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 12).setValues(newRows);
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 15).setValues(newRows);
   }
 
   return jsonResp({ status: 'ok', synced: synced });
@@ -156,10 +185,11 @@ function getRecords(from, to) {
     if (from && date < from) continue;
     if (to && date > to) continue;
 
-    const defectsStr = data[i][9] || '';
-    const defects = defectsStr ? defectsStr.split('、').filter(Boolean) : [];
+    // v2.1: 15 欄 [date, ts, op, station, batch, batchNum, layer, product, flavor, pass, fail, crit, defects, notes, raw]
+    const defectsStr = data[i][12] || '';
+    const defects = defectsStr ? String(defectsStr).split('、').filter(Boolean) : [];
     let rawData = {};
-    try { rawData = JSON.parse(data[i][11] || '{}'); } catch(e) {}
+    try { rawData = JSON.parse(data[i][14] || '{}'); } catch(e) {}
 
     records.push({
       date: date,
@@ -167,14 +197,17 @@ function getRecords(from, to) {
       operator: data[i][2],
       station: data[i][3],
       batch: data[i][4],
-      flavor: data[i][5],
+      batchNum: parseInt(data[i][5]) || 0,
+      layer: parseInt(data[i][6]) || 0,
+      product: data[i][7] || '重乳',
+      flavor: data[i][8],
       data: rawData,
       defects: defects,
-      notes: data[i][10] || '',
+      notes: data[i][13] || '',
       summary: {
-        passCount: parseInt(data[i][6]) || 0,
-        failCount: parseInt(data[i][7]) || 0,
-        criticalCount: parseInt(data[i][8]) || 0,
+        passCount: parseInt(data[i][9]) || 0,
+        failCount: parseInt(data[i][10]) || 0,
+        criticalCount: parseInt(data[i][11]) || 0,
         defects: defects
       }
     });
@@ -194,48 +227,51 @@ function getRecordDates() {
   return jsonResp({ status: 'ok', dates: [...dates].sort() });
 }
 
-// ========== 工單 ==========
-function saveWorkOrder(date, batches) {
-  if (!date || !batches) return jsonResp({ status: 'error', message: '缺少日期或批次' });
+// ========== 工單 (v2.1: layers 取代 batches) ==========
+function saveWorkOrder(date, layers) {
+  if (!date) return jsonResp({ status: 'error', message: '缺少日期' });
+  // 容忍 layers / batches 兩種來源
+  const list = layers || [];
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('工單');
   const data = sheet.getDataRange().getValues();
 
-  // 移除該日期的舊工單
-  const rowsToDelete = [];
+  // 移除該日期舊工單
   for (let i = data.length - 1; i >= 1; i--) {
-    if (data[i][0] === date) rowsToDelete.push(i + 1);
+    if (data[i][0] === date) sheet.deleteRow(i + 1);
   }
-  rowsToDelete.forEach(r => sheet.deleteRow(r));
 
-  // 寫入新工單
-  const newRows = batches.map(b => [date, b.id, b.round, b.oven, b.flavor]);
+  // 寫入新工單 [日期, 批次編號, 批次號, 層號, 品項, 口味]
+  const newRows = list.map(L => [
+    date, L.batch, L.batchNum, L.layer, L.product || '重乳', L.flavor || ''
+  ]);
   if (newRows.length > 0) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 5).setValues(newRows);
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 6).setValues(newRows);
   }
 
-  return jsonResp({ status: 'ok', saved: batches.length });
+  return jsonResp({ status: 'ok', saved: list.length });
 }
 
 function getWorkOrder(date) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('工單');
   const data = sheet.getDataRange().getValues();
-  const batches = [];
+  const layers = [];
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === date) {
-      batches.push({
-        id: data[i][1],
-        round: parseInt(data[i][2]) || 1,
-        oven: data[i][3],
-        flavor: data[i][4]
+      layers.push({
+        batch: data[i][1],
+        batchNum: parseInt(data[i][2]) || 0,
+        layer: parseInt(data[i][3]) || 0,
+        product: data[i][4] || '重乳',
+        flavor: data[i][5] || ''
       });
     }
   }
 
-  return jsonResp({ status: 'ok', batches: batches });
+  return jsonResp({ status: 'ok', layers: layers });
 }
 
 // ========== 人員 ==========
