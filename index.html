@@ -144,6 +144,14 @@
   .file-upload-area{border:2px dashed #ccc;border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin:0 16px 16px}
   .file-upload-area:hover{border-color:var(--brand);background:var(--brand-light)}
   .file-upload-area input{display:none}
+  .sync-bar{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 12px;font-size:11px;cursor:pointer}
+  .sync-bar.online{background:#D4EDDA;color:#155724}
+  .sync-bar.offline{background:#FFF3CD;color:#856404}
+  .sync-bar.syncing{background:#CCE5FF;color:#004085}
+  .sync-bar.error{background:#F8D7DA;color:#721C24}
+  .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .sync-dot.on{background:#27AE60}.sync-dot.off{background:#E67E22}.sync-dot.spin{background:#2E86C1;animation:pulse .8s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
   .notify-banner{display:none;position:fixed;top:0;left:0;right:0;padding:14px;text-align:center;font-weight:700;font-size:14px;z-index:300;animation:slideDown .3s ease}
   .notify-banner.warn{background:#FFF3CD;color:#856404}
   .notify-banner.critical{background:#F8D7DA;color:#721C24}
@@ -158,6 +166,10 @@
   <div class="header">
     <h1>🧀 起士公爵 生產良率監測</h1>
     <div class="sub">重乳酪蛋糕｜<span id="homeDate"></span></div>
+  </div>
+  <div class="sync-bar offline" id="syncBar" onclick="manualSync()">
+    <span class="sync-dot off" id="syncDot"></span>
+    <span id="syncText">未連接雲端</span>
   </div>
   <div class="home-section">
     <h2>📍 選擇工作站</h2>
@@ -306,6 +318,24 @@
 阿鶯
 佩榆"></textarea>
       <button class="btn btn-primary" onclick="saveOperators()" style="width:100%;margin-top:10px">💾 儲存人員名單</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">☁️ Google Sheets 雲端同步</div>
+    <div class="admin-info">
+      連接 Google Sheets 後，所有記錄會自動同步到雲端，<strong>所有手機共用同一份資料</strong>，不怕遺失。<br><br>
+      <strong>設定步驟：</strong><br>
+      1. 建立 Google Sheets → 擴充功能 → Apps Script<br>
+      2. 貼上後端程式碼（向管理員索取）<br>
+      3. 部署為網頁應用程式 → 複製網址貼到下方
+    </div>
+    <div style="padding:0 16px 16px">
+      <input type="text" id="cloudUrlInput" placeholder="貼上 Apps Script Web App URL" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;margin-bottom:8px">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="saveCloudUrl()" style="flex:1">💾 儲存並測試連線</button>
+        <button class="btn btn-secondary" onclick="disconnectCloud()" style="flex:.4;background:#fdf0ef;color:var(--red)">斷開</button>
+      </div>
+      <div id="cloudStatus" style="margin-top:8px;font-size:12px;color:#888"></div>
     </div>
   </div>
   <div class="card">
@@ -650,6 +680,8 @@ function submitStation() {
   if(defects.length)h+=`<div class="summary-item"><span>外觀不良</span><span style="color:#E74C3C;font-weight:700">${defects.join('、')}</span></div>`;
   document.getElementById('modalContent').innerHTML=h;
   document.getElementById('resultModal').classList.add('show');
+  // 自動同步到雲端
+  if (getCloudUrl()) syncToCloud();
 }
 
 function closeModal() {
@@ -745,16 +777,26 @@ function initAnalytics() {
   renderAnalytics();
 }
 
-function renderAnalytics() {
+async function renderAnalytics() {
   const fromStr = fromInputDate(document.getElementById('analyticsFrom').value);
   const toStr = fromInputDate(document.getElementById('analyticsTo').value);
   const fromD = parseDate(fromStr), toD = parseDate(toStr);
   toD.setHours(23, 59, 59);
 
-  const allRecords = getRecords().filter(r => {
-    const d = parseDate(r.date);
-    return d >= fromD && d <= toD;
-  });
+  const container = document.getElementById('analyticsContent');
+  container.innerHTML = '<div style="text-align:center;padding:40px;color:#888">載入中...</div>';
+
+  // 優先從雲端拉取資料
+  let allRecords;
+  const cloudRecords = await pullFromCloud(fromStr, toStr);
+  if (cloudRecords && cloudRecords.length > 0) {
+    allRecords = cloudRecords;
+  } else {
+    allRecords = getRecords().filter(r => {
+      const d = parseDate(r.date);
+      return d >= fromD && d <= toD;
+    });
+  }
 
   const container = document.getElementById('analyticsContent');
   if (allRecords.length === 0) {
@@ -937,6 +979,14 @@ function renderAdmin() {
 
   document.getElementById('opListInput').value = getOperators().join('\n');
 
+  // Cloud URL
+  const cloudUrl = getCloudUrl();
+  document.getElementById('cloudUrlInput').value = cloudUrl;
+  if (cloudUrl) {
+    document.getElementById('cloudStatus').textContent = '✅ 已連接';
+    document.getElementById('cloudStatus').style.color = '#27AE60';
+  }
+
   // Show current work order in textarea
   const wo = getWorkOrder();
   if (wo.length) {
@@ -1110,8 +1160,123 @@ function showNotify(text,type) {
   setTimeout(()=>b.style.display='none',4000);
 }
 
+// ========== CLOUD SYNC ==========
+function getCloudUrl() { return localStorage.getItem('bakery_cloud_url') || ''; }
+
+function updateSyncUI(state, text) {
+  const bar = document.getElementById('syncBar');
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  if (!bar) return;
+  bar.className = 'sync-bar ' + state;
+  dot.className = 'sync-dot ' + (state === 'online' ? 'on' : state === 'syncing' ? 'spin' : 'off');
+  txt.textContent = text;
+}
+
+async function cloudFetch(method, url, body) {
+  const opts = { method, redirect: 'follow' };
+  if (method === 'POST') {
+    opts.headers = { 'Content-Type': 'text/plain' };
+    opts.body = JSON.stringify(body);
+  }
+  const resp = await fetch(url, opts);
+  return resp.json();
+}
+
+async function saveCloudUrl() {
+  const url = document.getElementById('cloudUrlInput').value.trim();
+  if (!url) { showNotify('請輸入 URL','warn'); return; }
+  const statusEl = document.getElementById('cloudStatus');
+  statusEl.textContent = '測試連線中...';
+  statusEl.style.color = '#2E86C1';
+  try {
+    const result = await cloudFetch('POST', url, { action: 'init' });
+    if (result.status === 'ok') {
+      localStorage.setItem('bakery_cloud_url', url);
+      statusEl.textContent = '✅ 連線成功！資料將自動同步到 Google Sheets。';
+      statusEl.style.color = '#27AE60';
+      updateSyncUI('online', '已連接雲端');
+      showNotify('✅ 雲端連線成功','success');
+      // 立即進行首次同步
+      syncToCloud();
+    } else {
+      statusEl.textContent = '❌ 連線失敗：' + (result.message || '未知錯誤');
+      statusEl.style.color = 'var(--red)';
+    }
+  } catch (err) {
+    statusEl.textContent = '❌ 無法連線：' + err.message;
+    statusEl.style.color = 'var(--red)';
+  }
+}
+
+function disconnectCloud() {
+  localStorage.removeItem('bakery_cloud_url');
+  document.getElementById('cloudUrlInput').value = '';
+  document.getElementById('cloudStatus').textContent = '已斷開雲端連線';
+  updateSyncUI('offline', '未連接雲端');
+  showNotify('已斷開雲端','success');
+}
+
+async function syncToCloud() {
+  const url = getCloudUrl();
+  if (!url) return;
+  updateSyncUI('syncing', '同步中...');
+  try {
+    // 上傳本地記錄
+    const records = getRecords();
+    if (records.length > 0) {
+      await cloudFetch('POST', url, { action: 'syncRecords', records });
+    }
+    // 上傳今日工單
+    const wo = getWorkOrder();
+    if (wo.length > 0) {
+      await cloudFetch('POST', url, { action: 'saveWorkOrder', date: dateStr, batches: wo });
+    }
+    // 上傳人員名單
+    const ops = getOperators();
+    await cloudFetch('POST', url, { action: 'saveOperators', operators: ops });
+
+    const now = new Date();
+    const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    updateSyncUI('online', `已同步 ${timeStr}`);
+  } catch (err) {
+    updateSyncUI('error', '同步失敗');
+    console.error('Sync error:', err);
+  }
+}
+
+async function pullFromCloud(from, to) {
+  const url = getCloudUrl();
+  if (!url) return null;
+  try {
+    const result = await cloudFetch('GET', `${url}?action=getRecords&from=${from}&to=${to}`, null);
+    if (result.status === 'ok') return result.records;
+  } catch (err) { console.error('Pull error:', err); }
+  return null;
+}
+
+function manualSync() {
+  const url = getCloudUrl();
+  if (!url) {
+    location.hash = '#管理';
+    showNotify('請先設定 Google Sheets 雲端連線','warn');
+    return;
+  }
+  syncToCloud();
+}
+
+function initCloudStatus() {
+  const url = getCloudUrl();
+  if (url) {
+    updateSyncUI('online', '已連接雲端');
+    // 頁面載入時自動同步一次
+    syncToCloud();
+  }
+}
+
 // ========== INIT ==========
 route();
+initCloudStatus();
 </script>
 </body>
 </html>
