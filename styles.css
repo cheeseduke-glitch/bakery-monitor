@@ -149,3 +149,5 @@
   .notify-banner.critical{background:#F8D7DA;color:#721C24}
   .notify-banner.success{background:#D4EDDA;color:#155724}
   @keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+  .confirm-actions{display:flex;gap:12px;margin-top:16px}
+  .confirm-actions .btn{flex:1;min-height:44px}
