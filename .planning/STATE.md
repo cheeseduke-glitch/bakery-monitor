@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v2.1
+milestone_name: 多層複選 UX + Google Sheet 工單拉取
+status: unknown
+last_updated: "2026-04-15T11:28:43.268Z"
+progress:
+  total_phases: 5
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 2
+  percent: 100
+---
+
 # Project State
 
 **Initialized:** 2026-04-15
@@ -5,6 +19,7 @@
 **Current milestone:** v2.1 + V3 核心基建
 
 ## Current phase
+
 _None yet. Run `/gsd-plan-phase 1` to begin._
 
 ## Phase status
