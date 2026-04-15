@@ -43,7 +43,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — 多層送出確認 modal（showConfirm API + submitStation 前置 guard）
-- [ ] 02-02-PLAN.md — Sheet 拉取三類錯誤訊息 + 重新拉工單 diff 覆蓋確認
+- [x] 02-02-PLAN.md — Sheet 拉取三類錯誤訊息 + 重新拉工單 diff 覆蓋確認
 - [x] 02-03-PLAN.md — PRD §10.2 / §8 / §12 文案校正
 
 ### Phase 3: 離線同步佇列 + 可靠性
