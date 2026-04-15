@@ -264,6 +264,8 @@ Sheet 欄位（首列為標題，固定 5 欄）：
 
 ## 8. 數據分析規格
 
+**分析頁資料來源：** 優先雲端 (`pullFromCloud`)，fallback 本地 localStorage。
+
 ### 8.1 分析頁面提供的報表
 
 | 報表 | 維度 | 說明 |
@@ -344,8 +346,8 @@ Sheet 欄位（首列為標題，固定 5 欄）：
 
 - **寫入時機：** 每次提交記錄後自動同步
 - **唯一鍵：** 日期 + 批次 + 工作站（相同組合會更新而非重複新增）
-- **離線支援：** 斷網時存在 localStorage，上線後手動同步
-- **讀取時機：** 數據分析頁面查詢時從雲端拉取
+- **離線支援：** 斷網時存在 localStorage，上線後自動同步（記錄進 `bakery_sync_queue` 佇列，由 `flushQueue` 於網路恢復時重送；v2.1 已完成前端寫入，佇列機制於 Phase 3 補實作）
+- **讀取時機：** 數據分析頁面查詢時從雲端拉取（分析頁資料來源：優先雲端 `pullFromCloud`，fallback 本地 localStorage）
 
 ### 10.3 設定步驟
 
@@ -394,7 +396,7 @@ Sheet 欄位（首列為標題，固定 5 欄）：
 | 觸控優化 | 按鈕 ≥ 44px，間距充足 |
 | 離線可用 | localStorage 做離線快取 |
 | 品牌一致性 | 起士公爵綠色系 (#3A7D5C) |
-| 效能 | 單 HTML 檔 < 50KB，秒開 |
+| 效能 | 初次載入 < 100KB（index.html + styles.css + app.js gzip 後），秒開 |
 | 安全 | HTTPS (GitHub Pages 強制) |
 | 相容性 | iOS Safari 14+, Chrome 80+ |
 
