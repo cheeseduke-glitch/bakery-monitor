@@ -43,51 +43,79 @@ const STATION_FIELDS = {
   ],
 };
 
-// Default work order (from 0414 CSV)
-const DEFAULT_WORK_ORDER = [
-  {id:'1-A',round:1,oven:'A',flavor:'天使'},
-  {id:'1-B',round:1,oven:'B',flavor:'原味'},
-  {id:'1-C',round:1,oven:'C',flavor:'原味'},
-  {id:'2-A',round:2,oven:'A',flavor:'楓糖'},
-  {id:'2-B',round:2,oven:'B',flavor:'玫荔'},
-  {id:'2-C',round:2,oven:'C',flavor:'玫荔'},
-  {id:'3-A',round:3,oven:'A',flavor:'原巴'},
-];
+// v2.1: 站別輸入模式（多層複選 vs 單層）
+const MULTI_LAYER_STATIONS = new Set(['均質', '蛋白霜']);
+
+// 工單空預設（v2.1 改為 layer 粒度；實際工單由 Google Sheet 拉取）
+const DEFAULT_WORK_ORDER = [];
+
+// v2.1 批次結構工具
+function roundOf(batchNum) { return Math.ceil(batchNum / 3); }
+function batchId(batchNum, layer) { return `${batchNum}-${layer}`; }
+function parseBatchId(id) {
+  const [b, l] = String(id).split('-').map(n => parseInt(n));
+  return { batchNum: b || 0, layer: l || 0 };
+}
+
+// ========== STORAGE ==========
+// 集中管理所有 localStorage 讀寫，避免 key 字串散落各處
+const Storage = {
+  getRecords()          { return JSON.parse(localStorage.getItem('bakery_records')||'[]'); },
+  setRecords(r)         { localStorage.setItem('bakery_records', JSON.stringify(r)); },
+  getOperators()        { const s=localStorage.getItem('bakery_operators'); return s?JSON.parse(s):DEFAULT_OPERATORS; },
+  setOperators(ops)     { localStorage.setItem('bakery_operators', JSON.stringify(ops)); },
+  getWorkOrderRaw()     { const s=localStorage.getItem('bakery_workorder'); return s?JSON.parse(s):null; },
+  setWorkOrder(wo)      { localStorage.setItem('bakery_workorder', JSON.stringify(wo)); },
+  getCurrentOperator()  { return localStorage.getItem('current_operator')||''; },
+  setCurrentOperator(n) { localStorage.setItem('current_operator', n); },
+  getCloudUrl()         { return localStorage.getItem('bakery_cloud_url')||''; },
+  setCloudUrl(u)        { localStorage.setItem('bakery_cloud_url', u); },
+  clearCloudUrl()       { localStorage.removeItem('bakery_cloud_url'); },
+  getSheetUrl()         { return localStorage.getItem('bakery_workorder_sheet_url')||''; },
+  setSheetUrl(u)        { localStorage.setItem('bakery_workorder_sheet_url', u); },
+  clearSheetUrl()       { localStorage.removeItem('bakery_workorder_sheet_url'); },
+};
 
 // ========== STATE ==========
-let currentOperator = localStorage.getItem('current_operator') || '';
-let currentStation = '';
-let currentBatch = '';
-let dashViewDate = null; // Date object for dashboard view
+const AppState = {
+  operator: Storage.getCurrentOperator(),
+  station: '',
+  batch: '',                // 單選站用（batch ID: "1-1"）
+  selectedLayers: [],       // 多選站用（["1-1","1-2","1-3"]）
+  dashDate: null,           // 看板檢視日期
+};
 
-function getOperators() {
-  const saved = localStorage.getItem('bakery_operators');
-  return saved ? JSON.parse(saved) : DEFAULT_OPERATORS;
-}
+// ========== DATA HELPERS ==========
+function getRecords() { return Storage.getRecords(); }
+function saveRecords(r) { Storage.setRecords(r); }
+function getOperators() { return Storage.getOperators(); }
+// v2.1: 回傳 layer 陣列 [{batch, batchNum, layer, product, flavor, notes}]
 function getWorkOrder(forDate) {
   const targetDate = forDate || dateStr;
-  const saved = localStorage.getItem('bakery_workorder');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    if (parsed.date === targetDate) return parsed.batches;
-  }
+  const wo = Storage.getWorkOrderRaw();
+  if (wo && wo.date === targetDate && Array.isArray(wo.layers)) return wo.layers;
   if (targetDate === dateStr) return DEFAULT_WORK_ORDER;
-  // For historical dates, try to find work order from records
+  // 歷史日期：從記錄反推工單
   const records = getRecords().filter(r => r.date === targetDate);
   if (records.length) {
-    const batchMap = {};
+    const seen = {};
     records.forEach(r => {
-      if (!batchMap[r.batch]) batchMap[r.batch] = { id: r.batch, flavor: r.flavor || '' };
+      if (!seen[r.batch]) {
+        const { batchNum, layer } = parseBatchId(r.batch);
+        seen[r.batch] = {
+          batch: r.batch,
+          batchNum: r.batchNum || batchNum,
+          layer: r.layer || layer,
+          product: r.product || '重乳',
+          flavor: r.flavor || '',
+          notes: ''
+        };
+      }
     });
-    return Object.values(batchMap).map(b => {
-      const parts = b.id.split('-');
-      return { id: b.id, round: parseInt(parts[0]) || 1, oven: parts[1] || 'A', flavor: b.flavor };
-    }).sort((a,b) => a.round - b.round || a.oven.localeCompare(b.oven));
+    return Object.values(seen).sort((a,b) => a.batchNum - b.batchNum || a.layer - b.layer);
   }
   return [];
 }
-function getRecords() { return JSON.parse(localStorage.getItem('bakery_records')||'[]'); }
-function saveRecords(r) { localStorage.setItem('bakery_records', JSON.stringify(r)); }
 
 // ========== DATE HELPERS ==========
 function fmtDate(d) {
@@ -118,7 +146,7 @@ function route() {
 
   if (hash === '看板') {
     document.getElementById('page-dashboard').classList.add('active');
-    dashViewDate = new Date();
+    AppState.dashDate = new Date();
     renderDashboard();
   }
   else if (hash === '分析') {
@@ -126,11 +154,19 @@ function route() {
     initAnalytics();
   }
   else if (hash === '管理') { document.getElementById('page-admin').classList.add('active'); renderAdmin(); }
-  else if (STATION_META[hash]) { currentStation = hash; document.getElementById('page-station').classList.add('active'); renderStation(); }
-  else { document.getElementById('page-home').classList.add('active'); }
+  else if (STATION_META[hash]) { AppState.station = hash; document.getElementById('page-station').classList.add('active'); renderStation(); }
+  else {
+    document.getElementById('page-home').classList.add('active');
+    autoFetchWorkOrderIfStale();   // v2.1: 首頁自動拉工單（非阻塞）
+  }
 
   document.getElementById('homeDate').textContent = dateStr;
   window.scrollTo(0,0);
+}
+
+function autoFetchWorkOrderIfStale() {
+  if (!Storage.getSheetUrl()) return;
+  fetchTodayWorkOrder(false).catch(err => console.warn('工單自動拉取失敗:', err.message));
 }
 
 function goHome() { location.hash = ''; }
@@ -138,12 +174,17 @@ window.addEventListener('hashchange', route);
 
 // ========== STATION PAGE ==========
 function renderStation() {
-  const meta = STATION_META[currentStation];
+  const meta = STATION_META[AppState.station];
   const header = document.getElementById('stationHeader');
   header.style.background = meta.headerBg;
-  document.getElementById('stationTitle').textContent = `${meta.icon} ${currentStation}站`;
+  const isMulti = MULTI_LAYER_STATIONS.has(AppState.station);
+  document.getElementById('stationTitle').textContent = `${meta.icon} ${AppState.station}站${isMulti ? '（可多選層）' : ''}`;
   document.getElementById('stationSub').textContent = dateStr;
-  currentBatch = '';
+  AppState.batch = '';
+  AppState.selectedLayers = [];
+
+  // v2.1: 首頁若未自動拉，進工站再試一次
+  autoFetchWorkOrderIfStale();
 
   renderOperatorGrid();
   renderBatchGrid();
@@ -156,14 +197,14 @@ function renderOperatorGrid() {
   const ops = getOperators();
   const grid = document.getElementById('operatorGrid');
   grid.innerHTML = ops.map((name,i) => `
-    <div class="operator-btn ${currentOperator===name?'selected':''}" onclick="selectOp('${name}',this)">
+    <div class="operator-btn ${AppState.operator===name?'selected':''}" data-op-name="${name}">
       <span class="avatar">${AVATARS[i]||'👤'}</span>${name}
     </div>`).join('');
 }
 
 function selectOp(name, el) {
-  currentOperator = name;
-  localStorage.setItem('current_operator', name);
+  AppState.operator = name;
+  Storage.setCurrentOperator(name);
   document.querySelectorAll('.operator-btn').forEach(b => b.classList.remove('selected'));
   if (el) el.classList.add('selected');
   document.getElementById('otherOpInput').value = '';
@@ -172,60 +213,95 @@ function selectOp(name, el) {
 function selectOtherOp() {
   const name = document.getElementById('otherOpInput').value.trim();
   if (!name) { showNotify('請輸入姓名','warn'); return; }
-  currentOperator = name;
-  localStorage.setItem('current_operator', name);
+  AppState.operator = name;
+  Storage.setCurrentOperator(name);
   document.querySelectorAll('.operator-btn').forEach(b => b.classList.remove('selected'));
   updateStationSub();
   showNotify(`✅ ${name}`,'success');
 }
 function updateStationSub() {
-  document.getElementById('stationSub').textContent = currentOperator ? `${currentOperator}｜${dateStr}` : dateStr;
+  document.getElementById('stationSub').textContent = AppState.operator ? `${AppState.operator}｜${dateStr}` : dateStr;
 }
 
+// v2.1: 每層一個按鈕，分輪顯示。多選站用 checkbox 樣式；單選站用 radio 樣式。
 function renderBatchGrid() {
   const wo = getWorkOrder();
   const records = getRecords();
   const grid = document.getElementById('batchGrid');
+  const isMulti = MULTI_LAYER_STATIONS.has(AppState.station);
+
+  if (!wo.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;color:#888">
+      尚無工單。請到<a href="#管理" style="color:var(--brand);font-weight:600">管理設定</a>綁定 Sheet。
+    </div>`;
+    return;
+  }
+
   let html = ''; let lastRound = 0;
-  wo.forEach(batch => {
-    if (batch.round !== lastRound) { html += `<div class="round-label">第 ${batch.round} 輪</div>`; lastRound = batch.round; }
-    const done = records.some(r => r.batch===batch.id && r.station===currentStation && r.date===dateStr);
-    const sel = currentBatch === batch.id;
-    html += `<div class="batch-btn ${done?'done':''} ${sel?'selected':''}" onclick="selectBatch('${batch.id}')">
-      <div class="batch-label">${batch.id}</div>
-      <div class="batch-detail">烤箱${batch.oven}｜${batch.flavor}</div></div>`;
+  wo.forEach(L => {
+    const r = roundOf(L.batchNum);
+    if (r !== lastRound) { html += `<div class="round-label">第 ${r} 輪</div>`; lastRound = r; }
+    const done = records.some(x => x.batch===L.batch && x.station===AppState.station && x.date===dateStr);
+    const sel = isMulti ? AppState.selectedLayers.includes(L.batch) : AppState.batch === L.batch;
+    const mark = isMulti ? (sel ? '☑' : '☐') : '';
+    html += `<div class="batch-btn ${done?'done':''} ${sel?'selected':''}" data-batch-id="${L.batch}">
+      <div class="batch-label">${mark} ${L.batch}</div>
+      <div class="batch-detail">${L.product || '重乳'}｜${L.flavor}</div></div>`;
   });
   grid.innerHTML = html;
 }
 
 function selectBatch(id) {
-  if (!currentOperator) { showNotify('請先選擇操作人員','warn'); return; }
-  currentBatch = id;
+  if (!AppState.operator) { showNotify('請先選擇操作人員','warn'); return; }
+  const isMulti = MULTI_LAYER_STATIONS.has(AppState.station);
+
+  if (isMulti) {
+    const i = AppState.selectedLayers.indexOf(id);
+    if (i >= 0) AppState.selectedLayers.splice(i, 1);
+    else AppState.selectedLayers.push(id);
+    AppState.batch = AppState.selectedLayers[0] || '';
+  } else {
+    AppState.batch = id;
+    AppState.selectedLayers = [id];
+  }
+
   renderBatchGrid();
+
+  if (!AppState.selectedLayers.length) {
+    document.getElementById('notesSection').style.display = 'none';
+    document.getElementById('submitArea').style.display = 'none';
+    return;
+  }
+
   document.getElementById('notesSection').style.display = 'block';
   document.getElementById('submitArea').style.display = 'flex';
   clearFormFields();
-  const rec = getRecords().find(r => r.batch===id && r.station===currentStation && r.date===dateStr);
+
+  // 預填：以第一個已選層的既有記錄
+  const first = AppState.selectedLayers[0];
+  const rec = getRecords().find(r => r.batch===first && r.station===AppState.station && r.date===dateStr);
   if (rec) {
     Object.entries(rec.data||{}).forEach(([k,v]) => { const el=document.getElementById(k); if(el)el.value=v; });
-    if (rec.defects) rec.defects.forEach(d => { const b=document.querySelector(`.defect-btn[data-defect="${d}"]`); if(b)b.classList.add('active'); });
+    // D3：讀取端統一走 summary.defects，保留 rec.defects 作為舊資料安全網
+    const recDefects = (rec.summary && rec.summary.defects) || rec.defects || [];
+    recDefects.forEach(d => { const b=document.querySelector(`.defect-btn[data-defect="${d}"]`); if(b)b.classList.add('active'); });
     if (rec.notes) document.getElementById('stationNotes').value = rec.notes;
     revalidateAll();
   }
 }
 
 function renderFormFields() {
-  const fields = STATION_FIELDS[currentStation];
-  const meta = STATION_META[currentStation];
-  let html = `<div class="card"><div class="card-title" style="background:${meta.bg};color:${meta.color}">${meta.icon} ${currentStation}站監控項目</div>`;
+  const fields = STATION_FIELDS[AppState.station];
+  const meta = STATION_META[AppState.station];
+  let html = `<div class="card"><div class="card-title" style="background:${meta.bg};color:${meta.color}">${meta.icon} ${AppState.station}站監控項目</div>`;
   fields.forEach(f => {
     html += `<div class="field"><div class="field-label">${f.label} <span class="badge" id="badge-${f.id}"></span></div>`;
     if (f.std) html += `<div class="field-standard">標準：<span>${f.std}</span></div>`;
-    if (f.type==='number') html += `<div class="input-row"><input type="number" id="${f.id}" placeholder="${f.unit}" step="${f.step}" inputmode="decimal" oninput="validateNum('${f.id}',${f.min},${f.max},'${f.unit}')"><span class="input-unit">${f.unit}</span></div>`;
-    else if (f.type==='time') html += `<div class="input-row"><input type="number" id="${f.id}_m" placeholder="分" inputmode="numeric" oninput="validateTime('${f.id}',${f.minSec},${f.maxSec})"><span class="input-unit">分</span><input type="number" id="${f.id}_s" placeholder="秒" inputmode="numeric" oninput="validateTime('${f.id}',${f.minSec},${f.maxSec})"><span class="input-unit">秒</span></div>`;
-    else if (f.type==='select') { html += `<select id="${f.id}" onchange="validateSel('${f.id}','${f.expected}','${f.critical||''}')">`; f.options.forEach(o => html+=`<option value="${o.value}">${o.text}</option>`); html += `</select>`; }
-    else if (f.type==='dual') { html += `<div class="input-row">`; f.sub.forEach(s => html += `<div style="flex:1"><input type="number" id="${s.id}" placeholder="${s.placeholder}" inputmode="numeric" oninput="validateDual('${f.id}')"><div style="font-size:11px;color:#999;text-align:center;margin-top:2px">${s.label}</div></div>`); html += `</div>`; }
-    else if (f.type==='defects') { html += `<div class="defect-grid">`; f.items.forEach(it => html += `<div class="defect-btn" data-defect="${it.value}" onclick="toggleDefect(this)"><span class="icon">${it.icon}</span>${it.text}</div>`); html += `</div>`; }
+    if (f.type==='number') html += `<div class="input-row"><input type="number" id="${f.id}" placeholder="${f.unit}" step="${f.step}" inputmode="decimal"><span class="input-unit">${f.unit}</span></div>`;
+    else if (f.type==='time') html += `<div class="input-row"><input type="number" id="${f.id}_m" placeholder="分" inputmode="numeric"><span class="input-unit">分</span><input type="number" id="${f.id}_s" placeholder="秒" inputmode="numeric"><span class="input-unit">秒</span></div>`;
+    else if (f.type==='select') { html += `<select id="${f.id}">`; f.options.forEach(o => html+=`<option value="${o.value}">${o.text}</option>`); html += `</select>`; }
+    else if (f.type==='dual') { html += `<div class="input-row">`; f.sub.forEach(s => html += `<div style="flex:1"><input type="number" id="${s.id}" placeholder="${s.placeholder}" inputmode="numeric"><div style="font-size:11px;color:#999;text-align:center;margin-top:2px">${s.label}</div></div>`); html += `</div>`; }
+    else if (f.type==='defects') { html += `<div class="defect-grid">`; f.items.forEach(it => html += `<div class="defect-btn" data-defect="${it.value}"><span class="icon">${it.icon}</span>${it.text}</div>`); html += `</div>`; }
     html += `<div class="validation-msg" id="msg-${f.id}"></div></div>`;
   });
   html += `</div>`;
@@ -254,7 +330,7 @@ function validateSel(id,exp,crit) {
   else{b.textContent='不合格';b.className='badge badge-fail';m.textContent='⚠️ 請通知班長確認';m.className='validation-msg warn'}
 }
 function validateDual(id) {
-  const field=STATION_FIELDS[currentStation].find(f=>f.id===id), b=document.getElementById('badge-'+id), m=document.getElementById('msg-'+id);
+  const field=STATION_FIELDS[AppState.station].find(f=>f.id===id), b=document.getElementById('badge-'+id), m=document.getElementById('msg-'+id);
   let issues=[];
   field.sub.forEach(s=>{const v=parseInt(document.getElementById(s.id).value);if(isNaN(v))return;if(s.target!==undefined){if(v<s.target-(s.tolerance||0)||v>s.target+(s.tolerance||0))issues.push(`${s.label} ${v}（標準${s.target}）`)}else if(s.min!==undefined){if(v<s.min||v>s.max)issues.push(`${s.label} ${v}（標準${s.min}~${s.max}）`)}});
   if(!field.sub.some(s=>document.getElementById(s.id).value)){b.textContent='';m.textContent='';return}
@@ -267,7 +343,7 @@ function toggleDefect(el) {
   if(a.length) showNotify(`🔴 不良：${Array.from(a).map(b=>b.dataset.defect).join('、')}，請通知主管！`,'critical');
 }
 function revalidateAll() {
-  STATION_FIELDS[currentStation].forEach(f=>{
+  STATION_FIELDS[AppState.station].forEach(f=>{
     if(f.type==='number')validateNum(f.id,f.min,f.max,f.unit);
     else if(f.type==='time')validateTime(f.id,f.minSec,f.maxSec);
     else if(f.type==='select')validateSel(f.id,f.expected,f.critical||'');
@@ -283,11 +359,11 @@ function clearFormFields() {
   const notes=document.getElementById('stationNotes'); if(notes)notes.value='';
 }
 
-// ========== SUBMIT ==========
+// ========== SUBMIT （v2.1：支援多層批量寫入） ==========
 function submitStation() {
-  if(!currentBatch){showNotify('請先選擇批次','warn');return}
-  if(!currentOperator){showNotify('請先選擇操作人員','warn');return}
-  const fields=STATION_FIELDS[currentStation], data={};
+  if(!AppState.selectedLayers.length){showNotify('請先選擇批次/層','warn');return}
+  if(!AppState.operator){showNotify('請先選擇操作人員','warn');return}
+  const fields=STATION_FIELDS[AppState.station], data={};
   let pass=0,fail=0,crit=0;
   fields.forEach(f=>{
     if(f.type==='number')data[f.id]=document.getElementById(f.id).value;
@@ -297,90 +373,110 @@ function submitStation() {
   });
   document.querySelectorAll('#stationForm .badge').forEach(b=>{if(b.textContent==='合格')pass++;else if(b.textContent==='不合格')fail++;else if(b.textContent==='嚴重')crit++});
   const defects=Array.from(document.querySelectorAll('.defect-btn.active')).map(b=>b.dataset.defect);
-  const wo=getWorkOrder().find(w=>w.id===currentBatch);
-  const record={date:dateStr,timestamp:new Date().toISOString(),operator:currentOperator,station:currentStation,batch:currentBatch,flavor:wo?wo.flavor:'',data,defects,notes:document.getElementById('stationNotes').value,summary:{passCount:pass,failCount:fail,criticalCount:crit,defects}};
+  const notes=document.getElementById('stationNotes').value;
+  const timestamp=new Date().toISOString();
+  const wo=getWorkOrder();
+
   const records=getRecords();
-  const idx=records.findIndex(r=>r.batch===currentBatch&&r.station===currentStation&&r.date===dateStr);
-  if(idx>=0)records[idx]=record;else records.push(record);
+  const writtenLayers=[];
+  AppState.selectedLayers.forEach(batchId_ => {
+    const L = wo.find(w => w.batch === batchId_);
+    const record = {
+      date: dateStr, timestamp,
+      operator: AppState.operator,
+      station: AppState.station,
+      batch: batchId_,
+      batchNum: L?.batchNum || parseBatchId(batchId_).batchNum,
+      layer: L?.layer || parseBatchId(batchId_).layer,
+      product: L?.product || '重乳',
+      flavor: L?.flavor || '',
+      // D3：頂層 defects 雙寫，過渡期保留，讀取端已改走 summary.defects；移除排 Phase 5 重構
+      data, defects, notes,
+      summary: { passCount:pass, failCount:fail, criticalCount:crit, defects }
+    };
+    const idx = records.findIndex(r => r.batch===batchId_ && r.station===AppState.station && r.date===dateStr);
+    if (idx >= 0) records[idx] = record; else records.push(record);
+    writtenLayers.push(batchId_);
+  });
   saveRecords(records);
 
   const isCrit=crit>0||defects.length>0;
+  const count=writtenLayers.length;
   document.getElementById('modalTitle').textContent=isCrit?'🔴 已記錄 — 請通知主管':fail>0?'🟡 已記錄 — 有異常項目':'✅ 已記錄 — 全部合格';
-  let h=`<div class="summary-item"><span>操作人員</span><span>${currentOperator}</span></div>
-    <div class="summary-item"><span>工作站</span><span>${currentStation}站</span></div>
-    <div class="summary-item"><span>批次</span><span>${currentBatch}（${wo?wo.flavor:''}）</span></div>
+  let h=`<div class="summary-item"><span>操作人員</span><span>${AppState.operator}</span></div>
+    <div class="summary-item"><span>工作站</span><span>${AppState.station}站</span></div>
+    <div class="summary-item"><span>寫入層數</span><span>${count} 筆</span></div>
+    <div class="summary-item"><span>層清單</span><span style="font-size:12px">${writtenLayers.join('、')}</span></div>
     <div class="summary-item"><span>合格</span><span style="color:#27AE60;font-weight:700">${pass} 項</span></div>`;
   if(fail)h+=`<div class="summary-item"><span>異常</span><span style="color:#E67E22;font-weight:700">${fail} 項</span></div>`;
   if(crit)h+=`<div class="summary-item"><span>嚴重</span><span style="color:#E74C3C;font-weight:700">${crit} 項</span></div>`;
   if(defects.length)h+=`<div class="summary-item"><span>外觀不良</span><span style="color:#E74C3C;font-weight:700">${defects.join('、')}</span></div>`;
   document.getElementById('modalContent').innerHTML=h;
   document.getElementById('resultModal').classList.add('show');
-  // 自動同步到雲端
   if (getCloudUrl()) syncToCloud();
 }
 
 function closeModal() {
   document.getElementById('resultModal').classList.remove('show');
-  clearFormFields(); currentBatch=''; renderBatchGrid();
+  clearFormFields();
+  AppState.batch=''; AppState.selectedLayers=[];
+  renderBatchGrid();
   document.getElementById('notesSection').style.display='none';
   document.getElementById('submitArea').style.display='none';
 }
 
 // ========== DASHBOARD ==========
 function dashDateShift(delta) {
-  dashViewDate.setDate(dashViewDate.getDate() + delta);
+  AppState.dashDate.setDate(AppState.dashDate.getDate() + delta);
   renderDashboard();
 }
 
+// v2.1: 看板粒度為 layer。每列一層，5 站欄位，同批次連續顯示，輪次分隔。
 function renderDashboard() {
-  const viewDateStr = fmtDate(dashViewDate);
+  const viewDateStr = fmtDate(AppState.dashDate);
   const isToday = viewDateStr === dateStr;
   document.getElementById('dashDateLabel').textContent = viewDateStr + (isToday ? ' (今日)' : '');
 
   const records = getRecords().filter(r => r.date === viewDateStr);
-  const wo = getWorkOrder(viewDateStr);
+  let wo = getWorkOrder(viewDateStr);
   const sNames = ['均質','蛋白霜','整面','烤箱','品判'];
-  let completed = 0, abnormal = 0;
+  const totalLayers = wo.length;
+  let completedLayers = 0, abnormalStations = 0;
 
-  if (wo.length === 0 && records.length > 0) {
-    // Reconstruct work order from records
-    const batchMap = {};
-    records.forEach(r => {
-      if (!batchMap[r.batch]) batchMap[r.batch] = { id: r.batch, flavor: r.flavor || '' };
-    });
-    const reconstructed = Object.values(batchMap).map(b => {
-      const parts = b.id.split('-');
-      return { id: b.id, round: parseInt(parts[0]) || 1, oven: parts[1] || 'A', flavor: b.flavor };
-    }).sort((a,b) => a.round - b.round || a.oven.localeCompare(b.oven));
-    wo.push(...reconstructed);
-  }
-
-  wo.forEach(batch => {
-    const br = records.filter(r => r.batch === batch.id);
-    if (br.length === 5) completed++;
-    br.forEach(r => { if (r.summary.failCount > 0 || r.summary.criticalCount > 0 || (r.summary.defects && r.summary.defects.length > 0)) abnormal++ });
+  wo.forEach(L => {
+    const rs = records.filter(r => r.batch === L.batch);
+    if (rs.length === sNames.length) completedLayers++;
+    rs.forEach(r => { if (r.summary.failCount > 0 || r.summary.criticalCount > 0 || (r.summary.defects && r.summary.defects.length > 0)) abnormalStations++ });
   });
 
   document.getElementById('dashSummary').innerHTML = `
-    <div class="summary-card"><div class="num" style="color:var(--brand)">${wo.length}</div><div class="label">${isToday?'今日':'當日'}批次</div></div>
-    <div class="summary-card"><div class="num" style="color:#27AE60">${completed}</div><div class="label">完整記錄</div></div>
-    <div class="summary-card"><div class="num" style="color:${abnormal?'var(--red)':'#27AE60'}">${abnormal}</div><div class="label">異常站次</div></div>`;
+    <div class="summary-card"><div class="num" style="color:var(--brand)">${totalLayers}</div><div class="label">${isToday?'今日':'當日'}層數</div></div>
+    <div class="summary-card"><div class="num" style="color:#27AE60">${completedLayers}</div><div class="label">完整記錄</div></div>
+    <div class="summary-card"><div class="num" style="color:${abnormalStations?'var(--red)':'#27AE60'}">${abnormalStations}</div><div class="label">異常站次</div></div>`;
 
-  let t = `<tr><th>批次</th><th>口味</th>`;
+  let t = `<tr><th>批次-層</th><th>品項/口味</th>`;
   sNames.forEach(s => t += `<th>${s.charAt(0)}</th>`);
   t += `</tr>`;
-  let lr = 0;
-  wo.forEach(batch => {
-    if (batch.round !== lr) { t += `<tr style="background:#e8e8e8"><td colspan="${sNames.length+2}" style="font-weight:700;text-align:left;padding:6px 8px;font-size:12px">第 ${batch.round} 輪</td></tr>`; lr = batch.round; }
-    t += `<tr><td style="font-weight:700">${batch.id}</td><td style="font-size:11px">${batch.flavor}</td>`;
+
+  let lastRound = 0, lastBatchNum = 0;
+  wo.forEach(L => {
+    const r = roundOf(L.batchNum);
+    if (r !== lastRound) {
+      t += `<tr style="background:#e8e8e8"><td colspan="${sNames.length+2}" style="font-weight:700;text-align:left;padding:6px 8px;font-size:12px">第 ${r} 輪</td></tr>`;
+      lastRound = r; lastBatchNum = 0;
+    }
+    const firstOfBatch = L.batchNum !== lastBatchNum;
+    lastBatchNum = L.batchNum;
+    const batchLabelStyle = firstOfBatch ? 'font-weight:700' : 'font-weight:700;color:#999';
+    t += `<tr><td style="${batchLabelStyle}">${L.batch}</td><td style="font-size:11px">${L.product || '重乳'}｜${L.flavor}</td>`;
     sNames.forEach(s => {
-      const rec = records.find(r => r.batch === batch.id && r.station === s);
+      const rec = records.find(x => x.batch === L.batch && x.station === s);
       if (!rec) { t += `<td><div class="station-cell"><span class="status-dot dot-gray"></span></div></td>` }
       else {
         let dotClass = 'dot-green';
         if (rec.summary.criticalCount > 0 || (rec.summary.defects && rec.summary.defects.length > 0)) dotClass = 'dot-red';
         else if (rec.summary.failCount > 0) dotClass = 'dot-yellow';
-        const shortName = rec.operator.replace(/師傅$/, '').slice(-2);
+        const shortName = (rec.operator||'').replace(/師傅$/, '').slice(-2);
         t += `<td><div class="station-cell"><span class="status-dot ${dotClass}"></span><span class="op-name">${shortName}</span></div></td>`;
       }
     });
@@ -621,147 +717,162 @@ function renderAdmin() {
     document.getElementById('cloudStatus').style.color = '#27AE60';
   }
 
-  // Show current work order in textarea
-  const wo = getWorkOrder();
-  if (wo.length) {
-    document.getElementById('csvInput').value = wo.map(b => `${b.round},${b.oven},${b.flavor}`).join('\n');
+  // v2.1: Sheet URL
+  const sheetUrl = Storage.getSheetUrl();
+  document.getElementById('sheetUrlInput').value = sheetUrl;
+  const sheetStatus = document.getElementById('sheetStatus');
+  if (sheetUrl) {
+    sheetStatus.textContent = '✅ 已綁定';
+    sheetStatus.style.color = '#27AE60';
+    renderWorkOrderPreview(getWorkOrder());
+  } else {
+    sheetStatus.textContent = '尚未綁定 Sheet';
+    sheetStatus.style.color = '#888';
   }
 }
 
-// File upload handler
-function handleFileUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    document.getElementById('csvInput').value = ev.target.result;
-    parseWorkOrder();
-  };
-  reader.readAsText(file, 'UTF-8');
-  e.target.value = ''; // reset for re-upload
+// v2.1: Google Sheet 工單綁定與拉取 -----------------------------------------
+
+// 解析任意 Google Sheet URL → CSV export URL
+function sheetUrlToCsv(url) {
+  const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (!m) return null;
+  const id = m[1];
+  const gidMatch = url.match(/[#&?]gid=(\d+)/);
+  const gid = gidMatch ? gidMatch[1] : '0';
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
 }
 
-function parseWorkOrder() {
-  const raw = document.getElementById('csvInput').value.trim();
-  if(!raw){showNotify('請貼上工單內容','warn');return}
-
-  const batches = [];
-  const lines = raw.split('\n');
-
-  // Try simple format first: round,oven,flavor
-  let simpleFormat = true;
-  for (const line of lines) {
-    const parts = line.split(',').map(s=>s.trim());
-    if (parts.length >= 3 && /^\d+$/.test(parts[0]) && /^[A-C]$/i.test(parts[1])) {
-      batches.push({id:`${parts[0]}-${parts[1].toUpperCase()}`, round:parseInt(parts[0]), oven:parts[1].toUpperCase(), flavor:parts[2]});
-    } else { simpleFormat = false; break; }
-  }
-
-  if (!simpleFormat) {
-    // Parse Google Sheets CSV format
-    batches.length = 0;
-    let currentRound = 0;
-
-    // Strategy: find layer headers and extract oven-flavor mapping
-    // The CSV has 3 oven columns: A (cols ~2-7), B (cols ~9-14), C (cols ~16-21)
-    // Flavor appears on "口味" lines at cols 3, 10, 17 approximately
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const cols = line.split(',');
-
-      // Detect round marker: column 1 has a number, nearby line has "輪"
-      if (cols.length > 1 && /^\d+$/.test(cols[1].trim())) {
-        const roundNum = parseInt(cols[1].trim());
-        // Check if same row or next row contains "輪"
-        if (line.includes('輪') || (i+1 < lines.length && lines[i+1].includes('輪'))) {
-          currentRound = roundNum;
-        }
-      }
-
-      // Detect first layer header per round (contains 烤箱A/B/C)
-      if (line.includes('【烤箱') && line.includes('第 1 層')) {
-        // Find the flavor lines - look for "口味" in next few lines
-        for (let j = i+1; j < Math.min(i+4, lines.length); j++) {
-          const fLine = lines[j];
-          if (fLine.includes('口味')) {
-            const fCols = fLine.split(',');
-            // Extract flavors for each oven
-            const ovenFlavors = [];
-            for (let c = 0; c < fCols.length; c++) {
-              if (fCols[c].trim() === '口味' && c+1 < fCols.length) {
-                const flavor = fCols[c+1].trim();
-                if (flavor) ovenFlavors.push(flavor);
-              }
-            }
-
-            // Map flavors to ovens A, B, C
-            const ovenLetters = ['A', 'B', 'C'];
-            ovenFlavors.forEach((fl, idx) => {
-              if (idx < 3 && currentRound > 0) {
-                const batchId = `${currentRound}-${ovenLetters[idx]}`;
-                if (!batches.find(b => b.id === batchId)) {
-                  batches.push({id: batchId, round: currentRound, oven: ovenLetters[idx], flavor: fl});
-                }
-              }
-            });
-            break;
-          }
-        }
-      }
-    }
-
-    // If still no results, try to find date and flavor summary on right side
-    if (batches.length === 0) {
-      // Fallback: look for pattern like "天,1.0" or "原巴,1.0" on right columns
-      const flavorCounts = [];
-      for (const line of lines) {
-        const cols = line.split(',');
-        // Look for columns near the right side with flavor + count pattern
-        for (let c = 20; c < cols.length - 1; c++) {
-          const name = cols[c].trim();
-          const count = parseFloat(cols[c+1]);
-          if (name && name.length <= 4 && !isNaN(count) && count > 0 && count === Math.floor(count)
-              && !name.includes('@') && !name.includes('吋') && !/\d/.test(name)) {
-            flavorCounts.push(name);
-          }
-        }
-      }
-      // Group and create simple batches from unique flavors
-      if (flavorCounts.length > 0) {
-        const uniqueFlavors = [...new Set(flavorCounts)];
-        const ovenLetters = ['A','B','C'];
-        let round = 1, ovenIdx = 0;
-        uniqueFlavors.forEach(fl => {
-          batches.push({id:`${round}-${ovenLetters[ovenIdx]}`, round, oven:ovenLetters[ovenIdx], flavor:fl});
-          ovenIdx++;
-          if (ovenIdx >= 3) { ovenIdx = 0; round++; }
-        });
-      }
+// 極簡 CSV parser（處理引號與逗號，不處理跨行引號）
+function parseCsvLine(line) {
+  const out = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQ) {
+      if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cur += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { out.push(cur); cur = ''; }
+      else cur += c;
     }
   }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
 
-  if (batches.length === 0) {
-    showNotify('無法解析工單，請使用簡易格式（每行：輪次,烤箱,口味）','warn');
-    return;
+// 解析 CSV 為 layers[]
+function parseWorkOrderCsv(csv) {
+  const lines = csv.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) throw new Error('Sheet 沒有資料');
+  const layers = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCsvLine(lines[i]);
+    const batchNum = parseInt(cols[0]);
+    const layer = parseInt(cols[1]);
+    const product = (cols[2] || '重乳').trim();
+    const flavor = (cols[3] || '').trim();
+    const notes = (cols[4] || '').trim();
+    if (!batchNum || !layer) continue;
+    layers.push({
+      batch: batchId(batchNum, layer),
+      batchNum, layer, product, flavor, notes
+    });
   }
+  layers.sort((a,b) => a.batchNum - b.batchNum || a.layer - b.layer);
+  return layers;
+}
 
-  batches.sort((a,b) => a.round-b.round || a.oven.localeCompare(b.oven));
-  localStorage.setItem('bakery_workorder', JSON.stringify({date:dateStr, batches}));
-  showNotify(`✅ 已匯入 ${batches.length} 個批次`,'success');
-  document.getElementById('csvInput').value = batches.map(b=>`${b.round},${b.oven},${b.flavor}`).join('\n');
+// 拉取今日工單（1 小時快取）
+async function fetchTodayWorkOrder(force) {
+  const url = Storage.getSheetUrl();
+  if (!url) return null;
+  const cached = Storage.getWorkOrderRaw();
+  const ONE_HOUR = 60 * 60 * 1000;
+  if (!force && cached && cached.date === dateStr && cached.fetchedAt
+      && (Date.now() - new Date(cached.fetchedAt).getTime() < ONE_HOUR)) {
+    return cached.layers;
+  }
+  const csvUrl = sheetUrlToCsv(url);
+  if (!csvUrl) throw new Error('URL 格式無效');
+  const resp = await fetch(csvUrl);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}（Sheet 是否已設為公開？）`);
+  const csv = await resp.text();
+  const layers = parseWorkOrderCsv(csv);
+  const wo = { date: dateStr, sourceUrl: url, fetchedAt: new Date().toISOString(), layers };
+  Storage.setWorkOrder(wo);
+  return layers;
+}
+
+async function saveSheetUrl() {
+  const url = document.getElementById('sheetUrlInput').value.trim();
+  if (!url) { showNotify('請貼上 Sheet 網址', 'warn'); return; }
+  if (!sheetUrlToCsv(url)) { showNotify('URL 格式錯誤', 'warn'); return; }
+  Storage.setSheetUrl(url);
+  document.getElementById('sheetStatus').textContent = '拉取中...';
+  try {
+    const layers = await fetchTodayWorkOrder(true);
+    document.getElementById('sheetStatus').style.color = '#27AE60';
+    document.getElementById('sheetStatus').textContent = `✅ 已拉取 ${layers.length} 層`;
+    renderWorkOrderPreview(layers);
+    showNotify(`✅ 工單已拉取（${layers.length} 層）`, 'success');
+  } catch (err) {
+    document.getElementById('sheetStatus').style.color = 'var(--red)';
+    document.getElementById('sheetStatus').textContent = '❌ ' + err.message;
+  }
+}
+
+async function refreshWorkOrder() {
+  if (!Storage.getSheetUrl()) { showNotify('尚未綁定 Sheet', 'warn'); return; }
+  document.getElementById('sheetStatus').textContent = '重新拉取中...';
+  try {
+    const layers = await fetchTodayWorkOrder(true);
+    document.getElementById('sheetStatus').style.color = '#27AE60';
+    document.getElementById('sheetStatus').textContent = `✅ 已更新 ${layers.length} 層`;
+    renderWorkOrderPreview(layers);
+    showNotify('✅ 工單已更新', 'success');
+  } catch (err) {
+    document.getElementById('sheetStatus').style.color = 'var(--red)';
+    document.getElementById('sheetStatus').textContent = '❌ ' + err.message;
+  }
+}
+
+function disconnectSheet() {
+  Storage.clearSheetUrl();
+  document.getElementById('sheetUrlInput').value = '';
+  document.getElementById('sheetStatus').textContent = '已解除綁定';
+  document.getElementById('workOrderPreview').innerHTML = '';
+  showNotify('已解除 Sheet 綁定', 'success');
+}
+
+function renderWorkOrderPreview(layers) {
+  const el = document.getElementById('workOrderPreview');
+  if (!layers || !layers.length) { el.innerHTML = ''; return; }
+  // D4：product 欄改為下拉，目前僅「重乳」，為 V3 多品項預留位置
+  const rows = layers.map((l, i) => `<tr><td>${l.batch}</td><td><select data-idx="${i}"><option value="重乳"${(l.product||'重乳')==='重乳'?' selected':''}>重乳</option></select></td><td>${l.flavor}</td></tr>`).join('');
+  el.innerHTML = `<table class="detail-table"><thead><tr><th>批次-層</th><th>品項（v2.1 預留多品項，目前僅「重乳」）</th><th>口味</th></tr></thead><tbody>${rows}</tbody></table>`;
+  el.querySelectorAll('select[data-idx]').forEach(sel => {
+    sel.addEventListener('change', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      const wo = Storage.getWorkOrderRaw();
+      if (!wo || !wo.layers || !wo.layers[idx]) return;
+      wo.layers[idx].product = e.target.value || '重乳';
+      Storage.setWorkOrder(wo);
+    });
+  });
 }
 
 function saveOperators() {
   const ops = document.getElementById('opListInput').value.trim().split('\n').map(s=>s.trim()).filter(Boolean);
   if(!ops.length){showNotify('請至少輸入一位','warn');return}
-  localStorage.setItem('bakery_operators', JSON.stringify(ops));
+  Storage.setOperators(ops);
   showNotify(`✅ 已儲存 ${ops.length} 位人員`,'success');
 }
 
 // ========== EXPORT ==========
 function exportData() {
-  const viewDateStr = fmtDate(dashViewDate);
+  const viewDateStr = fmtDate(AppState.dashDate);
   const records = getRecords().filter(r => r.date === viewDateStr);
   if(!records.length){showNotify('此日期尚無記錄','warn');return}
   downloadCSV(records, `生產監測_${viewDateStr.replace(/\//g,'')}.csv`);
@@ -795,7 +906,7 @@ function showNotify(text,type) {
 }
 
 // ========== CLOUD SYNC ==========
-function getCloudUrl() { return localStorage.getItem('bakery_cloud_url') || ''; }
+function getCloudUrl() { return Storage.getCloudUrl(); }
 
 function updateSyncUI(state, text) {
   const bar = document.getElementById('syncBar');
@@ -826,7 +937,7 @@ async function saveCloudUrl() {
   try {
     const result = await cloudFetch('POST', url, { action: 'init' });
     if (result.status === 'ok') {
-      localStorage.setItem('bakery_cloud_url', url);
+      Storage.setCloudUrl(url);
       statusEl.textContent = '✅ 連線成功！資料將自動同步到 Google Sheets。';
       statusEl.style.color = '#27AE60';
       updateSyncUI('online', '已連接雲端');
@@ -844,7 +955,7 @@ async function saveCloudUrl() {
 }
 
 function disconnectCloud() {
-  localStorage.removeItem('bakery_cloud_url');
+  Storage.clearCloudUrl();
   document.getElementById('cloudUrlInput').value = '';
   document.getElementById('cloudStatus').textContent = '已斷開雲端連線';
   updateSyncUI('offline', '未連接雲端');
@@ -908,6 +1019,52 @@ function initCloudStatus() {
   }
 }
 
+// ========== HELPERS（替代原本 onclick 內聯邏輯） ==========
+function clearTodayRecords() {
+  if (!confirm('確定清除今日所有記錄？此操作無法復原。')) return;
+  saveRecords(getRecords().filter(x => x.date !== dateStr));
+  showNotify('已清除今日記錄', 'success');
+}
+// ========== EVENT DELEGATION ==========
+function bindDelegatedEvents() {
+  // click：批次/人員/不良點選 + 通用 data-action
+  document.addEventListener('click', (e) => {
+    const op = e.target.closest('.operator-btn');
+    if (op && op.dataset.opName) { selectOp(op.dataset.opName, op); return; }
+    const bt = e.target.closest('.batch-btn');
+    if (bt && bt.dataset.batchId) { selectBatch(bt.dataset.batchId); return; }
+    const df = e.target.closest('.defect-btn');
+    if (df) { toggleDefect(df); return; }
+    const ac = e.target.closest('[data-action]');
+    if (ac) {
+      const fn = window[ac.dataset.action];
+      if (typeof fn === 'function') {
+        const arg = ac.dataset.arg;
+        fn(arg !== undefined ? (isNaN(arg) ? arg : Number(arg)) : undefined);
+      }
+    }
+  });
+
+  // 工站表單 input/change：依當前工站的欄位定義分派驗證器
+  const form = document.getElementById('stationForm');
+  const dispatchValidate = (e) => {
+    const id = e.target.id;
+    if (!id) return;
+    const fields = STATION_FIELDS[AppState.station] || [];
+    const baseId = id.replace(/_(m|s)$/, '');
+    const field = fields.find(f => f.id === baseId || f.id === id || (f.sub && f.sub.some(s => s.id === id)));
+    if (!field) return;
+    if (field.type === 'number') validateNum(field.id, field.min, field.max, field.unit);
+    else if (field.type === 'time') validateTime(field.id, field.minSec, field.maxSec);
+    else if (field.type === 'dual') validateDual(field.id);
+    else if (field.type === 'select') validateSel(field.id, field.expected, field.critical || '');
+  };
+  form.addEventListener('input', dispatchValidate);
+  form.addEventListener('change', dispatchValidate);
+
+}
+
 // ========== INIT ==========
+bindDelegatedEvents();
 route();
 initCloudStatus();

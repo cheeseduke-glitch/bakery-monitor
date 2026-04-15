@@ -15,7 +15,7 @@
     <h1>🧀 起士公爵 生產良率監測</h1>
     <div class="sub">重乳酪蛋糕｜<span id="homeDate"></span></div>
   </div>
-  <div class="sync-bar offline" id="syncBar" onclick="manualSync()">
+  <div class="sync-bar offline" id="syncBar" data-action="manualSync">
     <span class="sync-dot off" id="syncDot"></span>
     <span id="syncText">未連接雲端</span>
   </div>
@@ -41,7 +41,7 @@
 <!-- ===== STATION (dynamic) ===== -->
 <div class="page" id="page-station">
   <div class="header" id="stationHeader">
-    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <button class="back-btn" data-action="goHome">← 返回</button>
     <h1 id="stationTitle"></h1>
     <div class="sub" id="stationSub"></div>
   </div>
@@ -52,7 +52,7 @@
       <div class="operator-grid" id="operatorGrid"></div>
       <div class="other-op-row">
         <input type="text" id="otherOpInput" placeholder="臨時支援 / 新進同仁">
-        <button onclick="selectOtherOp()">確認</button>
+        <button data-action="selectOtherOp">確認</button>
       </div>
     </div>
   </div>
@@ -70,20 +70,20 @@
     </div>
   </div>
   <div class="submit-area" id="submitArea" style="display:none">
-    <button class="btn btn-secondary" onclick="goHome()">取消</button>
-    <button class="btn btn-primary" onclick="submitStation()">✅ 提交記錄</button>
+    <button class="btn btn-secondary" data-action="goHome">取消</button>
+    <button class="btn btn-primary" data-action="submitStation">✅ 提交記錄</button>
   </div>
 </div>
 
 <!-- ===== DASHBOARD ===== -->
 <div class="page" id="page-dashboard">
   <div class="header">
-    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <button class="back-btn" data-action="goHome">← 返回</button>
     <h1>📊 生產看板</h1>
     <div class="date-nav">
-      <button onclick="dashDateShift(-1)">◀</button>
+      <button data-action="dashDateShift" data-arg="-1">◀</button>
       <span class="date-label" id="dashDateLabel"></span>
-      <button onclick="dashDateShift(1)">▶</button>
+      <button data-action="dashDateShift" data-arg="1">▶</button>
     </div>
   </div>
   <div class="dashboard-summary" id="dashSummary"></div>
@@ -97,14 +97,14 @@
     <table class="dashboard-table" id="dashTable"></table>
   </div>
   <div style="padding:12px 16px">
-    <button class="btn btn-primary" onclick="exportData()" style="width:100%">📥 匯出此日數據 (CSV)</button>
+    <button class="btn btn-primary" data-action="exportData" style="width:100%">📥 匯出此日數據 (CSV)</button>
   </div>
 </div>
 
 <!-- ===== ANALYTICS ===== -->
 <div class="page" id="page-analytics">
   <div class="header" style="background:linear-gradient(135deg,var(--blue),#4A9BBF)">
-    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <button class="back-btn" data-action="goHome">← 返回</button>
     <h1>📈 數據分析</h1>
     <div class="sub">良率統計與趨勢分析</div>
   </div>
@@ -113,7 +113,7 @@
     <input type="date" id="analyticsFrom">
     <label>到</label>
     <input type="date" id="analyticsTo">
-    <button onclick="renderAnalytics()">查詢</button>
+    <button data-action="renderAnalytics">查詢</button>
   </div>
   <div id="analyticsContent"></div>
 </div>
@@ -121,32 +121,27 @@
 <!-- ===== ADMIN ===== -->
 <div class="page" id="page-admin">
   <div class="header">
-    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <button class="back-btn" data-action="goHome">← 返回</button>
     <h1>⚙️ 管理設定</h1>
     <div class="sub">匯入工單 / 管理人員</div>
   </div>
   <div class="card">
-    <div class="card-title">📋 匯入今日工單</div>
+    <div class="card-title">📋 Google Sheet 工單綁定</div>
     <div class="admin-info">
-      <strong>方法一：上傳 CSV 檔案</strong><br>
-      從 Google Sheets 下載 CSV 檔，系統自動解析輪次與口味。
-    </div>
-    <div class="file-upload-area" onclick="document.getElementById('csvFileInput').click()">
-      <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" onchange="handleFileUpload(event)">
-      📁 點擊選擇工單 CSV 檔案
-    </div>
-    <div class="admin-info">
-      <strong>方法二：手動輸入</strong><br>
-      每行格式：<code>輪次,烤箱,口味</code>（例：1,A,天使）
+      貼上 Google Sheet 網址永久綁定，系統會在首頁開啟時自動拉取當日工單。<br><br>
+      <strong>Sheet 欄位格式（5 欄，首列為標題）：</strong><br>
+      <code>批次 | 層 | 品項 | 口味 | 備註</code><br><br>
+      <strong>存取設定：</strong>Sheet 需設為「知道連結的任何人可檢視」
     </div>
     <div style="padding:0 16px 16px">
-      <textarea class="csv-area" id="csvInput" placeholder="在此貼上或手動輸入：
-1,A,天使
-1,B,原味
-1,C,原味
-2,A,楓糖
-..."></textarea>
-      <button class="btn btn-primary" onclick="parseWorkOrder()" style="width:100%;margin-top:10px">📥 匯入工單</button>
+      <input type="text" id="sheetUrlInput" placeholder="貼上 Google Sheet 網址" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;margin-bottom:8px">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" data-action="saveSheetUrl" style="flex:1">💾 儲存並拉取</button>
+        <button class="btn btn-secondary" data-action="refreshWorkOrder" style="flex:.5">🔄 重新拉取</button>
+        <button class="btn btn-secondary" data-action="disconnectSheet" style="flex:.35;background:#fdf0ef;color:var(--red)">解除</button>
+      </div>
+      <div id="sheetStatus" style="margin-top:8px;font-size:12px;color:#888"></div>
+      <div id="workOrderPreview" style="margin-top:12px;font-size:12px"></div>
     </div>
   </div>
   <div class="card">
@@ -165,7 +160,7 @@
 黃宥欣
 阿鶯
 佩榆"></textarea>
-      <button class="btn btn-primary" onclick="saveOperators()" style="width:100%;margin-top:10px">💾 儲存人員名單</button>
+      <button class="btn btn-primary" data-action="saveOperators" style="width:100%;margin-top:10px">💾 儲存人員名單</button>
     </div>
   </div>
   <div class="card">
@@ -180,8 +175,8 @@
     <div style="padding:0 16px 16px">
       <input type="text" id="cloudUrlInput" placeholder="貼上 Apps Script Web App URL" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace;margin-bottom:8px">
       <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="saveCloudUrl()" style="flex:1">💾 儲存並測試連線</button>
-        <button class="btn btn-secondary" onclick="disconnectCloud()" style="flex:.4;background:#fdf0ef;color:var(--red)">斷開</button>
+        <button class="btn btn-primary" data-action="saveCloudUrl" style="flex:1">💾 儲存並測試連線</button>
+        <button class="btn btn-secondary" data-action="disconnectCloud" style="flex:.4;background:#fdf0ef;color:var(--red)">斷開</button>
       </div>
       <div id="cloudStatus" style="margin-top:8px;font-size:12px;color:#888"></div>
     </div>
@@ -189,13 +184,13 @@
   <div class="card">
     <div class="card-title">💾 資料備份</div>
     <div style="padding:0 16px 16px;display:flex;gap:8px">
-      <button class="btn btn-primary" onclick="exportAllData()" style="flex:1">📥 匯出全部記錄</button>
+      <button class="btn btn-primary" data-action="exportAllData" style="flex:1">📥 匯出全部記錄</button>
     </div>
   </div>
   <div class="card">
     <div class="card-title">🗑️ 資料管理</div>
     <div style="padding:0 16px 16px">
-      <button class="btn btn-secondary" onclick="if(confirm('確定清除今日所有記錄？此操作無法復原。')){const r=getRecords().filter(x=>x.date!==dateStr);saveRecords(r);showNotify('已清除今日記錄','success')}" style="width:100%;background:#fdf0ef;color:var(--red)">清除今日記錄</button>
+      <button class="btn btn-secondary" data-action="clearTodayRecords" style="width:100%;background:#fdf0ef;color:var(--red)">清除今日記錄</button>
     </div>
   </div>
 </div>
@@ -205,7 +200,7 @@
   <div class="modal">
     <h2 id="modalTitle"></h2>
     <div id="modalContent"></div>
-    <button class="btn btn-primary" onclick="closeModal()" style="width:100%;margin-top:16px">確認</button>
+    <button class="btn btn-primary" data-action="closeModal" style="width:100%;margin-top:16px">確認</button>
   </div>
 </div>
 <div class="notify-banner" id="notifyBanner"></div>
