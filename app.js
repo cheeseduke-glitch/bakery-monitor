@@ -791,7 +791,32 @@ function parseWorkOrderCsv(csv) {
   return layers;
 }
 
-// 拉取今日工單（1 小時快取）
+// 拉取原始工單（不寫入 Storage）— 供 fetchTodayWorkOrder 與 refreshWorkOrder 共用
+async function fetchWorkOrderRaw() {
+  const url = Storage.getSheetUrl();
+  if (!url) return null;
+  const csvUrl = sheetUrlToCsv(url);
+  if (!csvUrl) { const e = new Error('URL 格式無效'); e.code = 'BAD_URL'; throw e; }
+  let resp;
+  try {
+    resp = await fetch(csvUrl);
+  } catch (netErr) {
+    const e = new Error('網路或權限錯誤'); e.code = 'NOT_PUBLIC'; throw e;
+  }
+  if (!resp.ok) { const e = new Error(`HTTP ${resp.status}`); e.code = 'NOT_PUBLIC'; throw e; }
+  const csv = await resp.text();
+  let layers;
+  try {
+    layers = parseWorkOrderCsv(csv);
+  } catch (parseErr) {
+    const e = new Error('CSV 格式錯誤'); e.code = 'BAD_CSV'; throw e;
+  }
+  if (!layers.length) { const e = new Error('CSV 無有效列'); e.code = 'BAD_CSV'; throw e; }
+  const wo = { date: dateStr, sourceUrl: url, fetchedAt: new Date().toISOString(), layers };
+  return { wo, layers };
+}
+
+// 拉取今日工單（1 小時快取；會寫入 Storage）
 async function fetchTodayWorkOrder(force) {
   const url = Storage.getSheetUrl();
   if (!url) return null;
@@ -801,21 +826,64 @@ async function fetchTodayWorkOrder(force) {
       && (Date.now() - new Date(cached.fetchedAt).getTime() < ONE_HOUR)) {
     return cached.layers;
   }
-  const csvUrl = sheetUrlToCsv(url);
-  if (!csvUrl) throw new Error('URL 格式無效');
-  const resp = await fetch(csvUrl);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}（Sheet 是否已設為公開？）`);
-  const csv = await resp.text();
-  const layers = parseWorkOrderCsv(csv);
-  const wo = { date: dateStr, sourceUrl: url, fetchedAt: new Date().toISOString(), layers };
-  Storage.setWorkOrder(wo);
-  return layers;
+  const raw = await fetchWorkOrderRaw();
+  if (!raw) return null;
+  Storage.setWorkOrder(raw.wo);
+  return raw.layers;
+}
+
+// 工單錯誤 → showNotify 對應文案
+function notifyWorkOrderError(err) {
+  const MSG = {
+    BAD_URL: '工單 URL 格式錯誤，請確認是 Google Sheet 連結',
+    NOT_PUBLIC: '無法讀取 Sheet，請確認已設為「知道連結的任何人可檢視」',
+    BAD_CSV: 'Sheet 欄位格式錯誤，請確認第一列為標題、從第二列開始填'
+  };
+  showNotify(MSG[err && err.code] || ('拉取失敗：' + (err && err.message || '未知錯誤')), 'error');
+}
+
+// 比對新舊工單 layers（以 batch key 為基準）
+function diffWorkOrder(oldLayers, newLayers) {
+  const oldMap = new Map((oldLayers || []).map(l => [l.batch, l]));
+  const newMap = new Map((newLayers || []).map(l => [l.batch, l]));
+  const added = [], removed = [], changed = [];
+  for (const [k, nl] of newMap) {
+    const ol = oldMap.get(k);
+    if (!ol) added.push(nl);
+    else if (ol.product !== nl.product || ol.flavor !== nl.flavor) changed.push({ old: ol, new: nl });
+  }
+  for (const [k, ol] of oldMap) {
+    if (!newMap.has(k)) removed.push(ol);
+  }
+  return { added, removed, changed, empty: !added.length && !removed.length && !changed.length };
+}
+
+function formatDiffHtml(diff) {
+  const rows = [];
+  diff.added.forEach(l => rows.push(`<div style="color:#27AE60">➕ ${l.batch} ${l.product}｜${l.flavor}</div>`));
+  diff.removed.forEach(l => rows.push(`<div style="color:#E74C3C">➖ ${l.batch} ${l.product}｜${l.flavor}</div>`));
+  diff.changed.forEach(c => rows.push(`<div style="color:#E67E22">♻ ${c.new.batch} ${c.old.product}｜${c.old.flavor} → ${c.new.product}｜${c.new.flavor}</div>`));
+  return `<div style="max-height:300px;overflow:auto;font-size:14px;line-height:1.8">${rows.join('')}</div>`;
+}
+
+// 推送工單到 Google Sheets（重用 cloudFetch + saveWorkOrder 既有協議；line ~1018 pattern）
+async function pushWorkOrderToCloud(wo) {
+  const url = getCloudUrl && getCloudUrl();
+  if (!url) return;
+  try {
+    await cloudFetch('POST', url, { action: 'saveWorkOrder', date: wo.date, batches: wo.layers });
+  } catch (e) {
+    console.warn('saveWorkOrder 推送失敗:', e && e.message);
+  }
 }
 
 async function saveSheetUrl() {
   const url = document.getElementById('sheetUrlInput').value.trim();
   if (!url) { showNotify('請貼上 Sheet 網址', 'warn'); return; }
-  if (!sheetUrlToCsv(url)) { showNotify('URL 格式錯誤', 'warn'); return; }
+  if (!sheetUrlToCsv(url)) {
+    showNotify('工單 URL 格式錯誤，請確認是 Google Sheet 連結', 'error');
+    return;
+  }
   Storage.setSheetUrl(url);
   document.getElementById('sheetStatus').textContent = '拉取中...';
   try {
@@ -827,22 +895,59 @@ async function saveSheetUrl() {
   } catch (err) {
     document.getElementById('sheetStatus').style.color = 'var(--red)';
     document.getElementById('sheetStatus').textContent = '❌ ' + err.message;
+    notifyWorkOrderError(err);
   }
 }
 
 async function refreshWorkOrder() {
   if (!Storage.getSheetUrl()) { showNotify('尚未綁定 Sheet', 'warn'); return; }
-  document.getElementById('sheetStatus').textContent = '重新拉取中...';
+  const statusEl = document.getElementById('sheetStatus');
+  statusEl.textContent = '重新拉取中...';
+  let raw;
   try {
-    const layers = await fetchTodayWorkOrder(true);
-    document.getElementById('sheetStatus').style.color = '#27AE60';
-    document.getElementById('sheetStatus').textContent = `✅ 已更新 ${layers.length} 層`;
-    renderWorkOrderPreview(layers);
-    showNotify('✅ 工單已更新', 'success');
+    raw = await fetchWorkOrderRaw();
   } catch (err) {
-    document.getElementById('sheetStatus').style.color = 'var(--red)';
-    document.getElementById('sheetStatus').textContent = '❌ ' + err.message;
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '❌ ' + err.message;
+    notifyWorkOrderError(err);
+    return;
   }
+  if (!raw) return;
+  const { wo: newWo, layers: newLayers } = raw;
+
+  const oldWo = Storage.getWorkOrderRaw();
+  const hasLocal = oldWo && oldWo.date === dateStr && Array.isArray(oldWo.layers) && oldWo.layers.length;
+
+  // 首次拉（無當日本地快取）→ 直接寫入 + 推雲
+  if (!hasLocal) {
+    Storage.setWorkOrder(newWo);
+    renderWorkOrderPreview(newLayers);
+    statusEl.style.color = '#27AE60';
+    statusEl.textContent = `✅ 已更新 ${newLayers.length} 層`;
+    showNotify(`✅ 工單已拉取（${newLayers.length} 層）`, 'success');
+    pushWorkOrderToCloud(newWo);
+    return;
+  }
+
+  const diff = diffWorkOrder(oldWo.layers, newLayers);
+  if (diff.empty) {
+    statusEl.style.color = '#27AE60';
+    statusEl.textContent = '工單無變更';
+    showNotify('工單無變更', 'ok');
+    return;
+  }
+
+  const ok = await showConfirm('重新拉工單', formatDiffHtml(diff), '覆蓋', '取消');
+  if (!ok) {
+    statusEl.textContent = '已取消';
+    return;
+  }
+  Storage.setWorkOrder(newWo);
+  renderWorkOrderPreview(newLayers);
+  statusEl.style.color = '#27AE60';
+  statusEl.textContent = `✅ 已更新 ${newLayers.length} 層`;
+  showNotify('✅ 工單已更新', 'success');
+  pushWorkOrderToCloud(newWo);
 }
 
 function disconnectSheet() {
