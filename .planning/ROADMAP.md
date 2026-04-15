@@ -23,12 +23,12 @@
   1. 新提交的 Record 帶齊 batchNum/layer/product 欄位
   2. 既有 localStorage 資料能讀能渲染能上雲（舊 product 預設「重乳酪」）
   3. Sheet 記錄表新欄位就緒，上下雲 round-trip 一致
-  4. 頂層 defects 已移除，統一用 summary.defects
-**Plans**: TBD
+  4. 頂層 defects 已移除，統一用 summary.defects（per D3：此 Phase 雙寫，所有讀取改走 summary.defects）
+**Plans:** 2 plans
 
 Plans:
-- [ ] 01-01: Record/WorkOrder schema 擴充 + 遷移 fallback
-- [ ] 01-02: Apps Script Sheet 欄位同步 + upsert 驗證
+- [ ] 01-01-PLAN.md — 前端稽核：defects 讀取統一走 summary、product fallback、管理頁 product 下拉（D2/D3/D4）
+- [ ] 01-02-PLAN.md — 後端 initSheets() 清空重建（D1）+ 端到端 round-trip 驗證
 
 ### Phase 2: v2.1 多層複選 UX + Google Sheet 工單拉取
 **Goal**: 操作員一次寫多層、班長換 Sheet gid 就換工單
@@ -100,6 +100,8 @@ Plans:
 - 品判照片上傳（§11.4）
 - QR Code 工單（§11.5）
 - 多工廠（§11.6）
+- 移除頂層 `defects` 寫入（Phase 1 D3 雙寫過渡，待 Phase 5 重構時收尾）
+- 管理頁「清除本地資料」按鈕（Phase 1 D2 衍生，排 Phase 2）
 
 ## Progress
 
@@ -116,4 +118,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 ## Next Action
 
-Run `/gsd-plan-phase 1` to break Phase 1 into executable tasks.
+Run `/gsd-execute-phase 1` to execute Phase 1 plans.
