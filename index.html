@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>起士公爵 生產良率監測系統</title>
+<style>
+  :root {
+    --brand:#3A7D5C; --brand-light:#E8F5EE; --brand-mid:#5BA67A; --brand-pale:#B4D7C6;
+    --gold:#B07D1F; --gold-light:#FFF8E7;
+    --blue:#2E6B8A; --blue-light:#EAF4F9;
+    --yellow:#D4A017; --yellow-light:#FFF8E1;
+    --green:#3A7D5C; --green-light:#E8F5EE;
+    --red:#C0392B; --red-light:#FDEDEC;
+    --purple:#7B5EA7; --purple-light:#F3EFF8;
+    --orange:#D4760A; --gray:#f2f4f3; --gray-dark:#666;
+    --radius:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Microsoft JhengHei","Segoe UI",sans-serif;background:var(--gray);color:#1a1a1a;font-size:16px;min-height:100vh}
+  .page{display:none;min-height:100vh;padding-bottom:90px}
+  .page.active{display:block}
+  .header{background:linear-gradient(135deg,var(--brand),var(--brand-mid));color:#fff;padding:16px;text-align:center;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  .header h1{font-size:18px;margin-bottom:2px}
+  .header .sub{font-size:12px;opacity:.8}
+  .header .back-btn{position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;font-size:14px;cursor:pointer}
+  .card{background:#fff;margin:12px;border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+  .card-title{font-size:15px;font-weight:700;padding:12px 16px;display:flex;align-items:center;gap:8px}
+  .home-section{padding:16px}
+  .home-section h2{font-size:16px;color:var(--brand);margin-bottom:12px}
+  /* operator */
+  .operator-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:8px}
+  .operator-btn{padding:14px 8px;border:2px solid #ddd;border-radius:var(--radius);background:#fff;text-align:center;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;user-select:none}
+  .operator-btn.selected{border-color:var(--brand-mid);background:var(--brand-light);color:var(--brand)}
+  .operator-btn .avatar{font-size:26px;display:block;margin-bottom:4px}
+  .other-op-row{display:flex;gap:8px;margin-top:8px}
+  .other-op-row input{flex:1;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit}
+  .other-op-row button{padding:10px 16px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  /* station cards on home */
+  .station-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .station-card{padding:18px 12px;border-radius:var(--radius);text-align:center;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.08);text-decoration:none;display:block}
+  .station-card:active{transform:scale(.97)}
+  .station-card .icon{font-size:30px;display:block;margin-bottom:6px}
+  .station-card .count{font-size:11px;font-weight:400;margin-top:4px;opacity:.7}
+  .s-均質{background:#E8F5EE;color:#2E6B4F}
+  .s-蛋白霜{background:#FFF8E1;color:#8B6914}
+  .s-整面{background:#E0F2E9;color:#3A7D5C}
+  .s-烤箱{background:#FDEDEC;color:#8B3A2F}
+  .s-品判{background:#F3EFF8;color:#5B4080}
+  .s-看板{background:#FFF8E7;color:#B07D1F;border:2px dashed var(--gold)}
+  .s-管理{background:#F0F0F0;color:#555;border:2px dashed #aaa}
+  /* batch */
+  .batch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px}
+  .batch-btn{padding:12px 8px;border:2px solid #e0e0e0;border-radius:10px;background:#fafafa;text-align:center;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+  .batch-btn.selected{border-color:var(--brand-mid);background:var(--brand-light)}
+  .batch-btn.done{border-color:#27AE60;background:#E8F8E8}
+  .batch-btn.done::after{content:' ✅';font-size:11px}
+  .batch-btn .batch-label{font-size:16px;font-weight:700}
+  .batch-btn .batch-detail{font-size:11px;color:var(--gray-dark);margin-top:2px}
+  .round-label{grid-column:1/-1;font-size:13px;font-weight:700;color:var(--brand);padding:6px 0 2px;border-bottom:1px solid #eee;margin-top:4px}
+  /* form fields */
+  .field{padding:14px 16px;border-top:1px solid #f0f0f0}
+  .field-label{font-size:14px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+  .field-standard{font-size:12px;color:#888;margin-bottom:8px}
+  .field-standard span{background:#f0f7ff;color:var(--brand);padding:2px 8px;border-radius:4px;font-weight:500}
+  input[type="text"],input[type="number"],select,textarea{width:100%;padding:12px;border:1.5px solid #ddd;border-radius:8px;font-size:16px;background:#fafafa;transition:border-color .2s;-webkit-appearance:none;font-family:inherit}
+  input:focus,select:focus,textarea:focus{border-color:var(--brand-mid);outline:none;background:#fff}
+  .input-row{display:flex;gap:10px;align-items:center}
+  .input-row>*{flex:1}
+  .input-unit{font-weight:600;flex:none!important;font-size:14px;color:var(--gray-dark)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+  .badge-pass{background:#d4edda;color:#155724}
+  .badge-fail{background:#fff3cd;color:#856404}
+  .badge-critical{background:#f8d7da;color:#721c24}
+  .validation-msg{font-size:12px;margin-top:4px;font-weight:500}
+  .validation-msg.warn{color:var(--orange)}
+  .validation-msg.error{color:var(--red)}
+  .validation-msg.ok{color:var(--green)}
+  .defect-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 0}
+  .defect-btn{padding:14px 12px;border:2px solid #ddd;border-radius:10px;background:#fafafa;text-align:center;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;user-select:none}
+  .defect-btn.active{border-color:var(--red);background:#fdf0ef;color:#C0392B}
+  .defect-btn .icon{font-size:24px;display:block;margin-bottom:4px}
+  .submit-area{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:12px 16px;border-top:1px solid #eee;box-shadow:0 -2px 8px rgba(0,0,0,.08);z-index:100;display:flex;gap:10px}
+  .btn{flex:1;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+  .btn-primary{background:var(--brand);color:#fff}
+  .btn-primary:active{background:#2D5E4A}
+  .btn-secondary{background:#f0f0f0;color:#333;flex:.35}
+  /* dashboard */
+  .dashboard-table{width:100%;border-collapse:collapse;font-size:13px}
+  .dashboard-table th{background:var(--brand);color:#fff;padding:10px 6px;font-size:12px;position:sticky;top:0}
+  .dashboard-table td{padding:8px 6px;text-align:center;border-bottom:1px solid #eee}
+  .dashboard-table tr:nth-child(even){background:#f9f9f9}
+  .status-dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+  .dot-green{background:#27AE60}.dot-yellow{background:var(--yellow)}.dot-red{background:var(--red)}.dot-gray{background:#ccc}
+  .dashboard-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px 16px}
+  .summary-card{background:#fff;border-radius:var(--radius);padding:16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .summary-card .num{font-size:28px;font-weight:800}
+  .summary-card .label{font-size:12px;color:var(--gray-dark);margin-top:4px}
+  .legend{display:flex;gap:16px;justify-content:center;padding:8px 16px;font-size:12px;color:var(--gray-dark)}
+  .legend-item{display:flex;align-items:center;gap:4px}
+  .notify-banner{display:none;position:fixed;top:0;left:0;right:0;padding:14px;text-align:center;font-weight:700;font-size:14px;z-index:300;animation:slideDown .3s ease}
+  .notify-banner.warn{background:#FFF3CD;color:#856404}
+  .notify-banner.critical{background:#F8D7DA;color:#721C24}
+  .notify-banner.success{background:#D4EDDA;color:#155724}
+  @keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;justify-content:center;align-items:center}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:24px;margin:16px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto}
+  .modal h2{font-size:18px;margin-bottom:16px;text-align:center}
+  .modal .summary-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
+  /* admin */
+  .admin-info{padding:16px;font-size:13px;color:var(--gray-dark);line-height:1.6}
+  .admin-info strong{color:#1a1a1a}
+  .csv-area{width:100%;min-height:120px;padding:12px;border:1.5px dashed #bbb;border-radius:8px;font-size:13px;font-family:monospace;background:#fafafa;resize:vertical}
+  .link-list{list-style:none;padding:0}
+  .link-list li{margin-bottom:8px}
+  .link-list a{display:block;padding:12px 16px;background:var(--brand-light);border-radius:8px;color:var(--brand);text-decoration:none;font-weight:600;font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- ===== HOME ===== -->
+<div class="page" id="page-home">
+  <div class="header">
+    <h1>🧀 起士公爵 生產良率監測</h1>
+    <div class="sub">重乳酪蛋糕｜<span id="homeDate"></span></div>
+  </div>
+  <div class="home-section">
+    <h2>📍 選擇工作站</h2>
+    <div class="station-grid">
+      <a class="station-card s-均質" href="#均質"><span class="icon">🥣</span>① 均質站<div class="count">乳酪溫度 / 均質時間</div></a>
+      <a class="station-card s-蛋白霜" href="#蛋白霜"><span class="icon">☁️</span>② 蛋白霜站<div class="count">打發 / 比重 / 拌合</div></a>
+      <a class="station-card s-整面" href="#整面"><span class="icon">🍰</span>③ 整面站<div class="count">筷子切泡</div></a>
+      <a class="station-card s-烤箱" href="#烤箱"><span class="icon">🔥</span>④ 烤箱站<div class="count">溫度 / 時間</div></a>
+      <a class="station-card s-品判" href="#品判"><span class="icon">👨‍🍳</span>⑤ 出爐品判<div class="count">熟度 / 顏色 / 不良</div></a>
+      <a class="station-card s-看板" href="#看板"><span class="icon">📊</span>當日看板<div class="count">全批次總覽</div></a>
+    </div>
+  </div>
+  <div class="home-section">
+    <a class="station-card s-管理" href="#管理" style="display:block;margin-top:8px"><span class="icon">⚙️</span>管理設定<div class="count">匯入工單 / 人員設定</div></a>
+  </div>
+</div>
+
+<!-- ===== STATION (dynamic) ===== -->
+<div class="page" id="page-station">
+  <div class="header" id="stationHeader">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <h1 id="stationTitle"></h1>
+    <div class="sub" id="stationSub"></div>
+  </div>
+  <!-- operator select -->
+  <div class="card" id="opCard">
+    <div class="card-title">👤 操作人員</div>
+    <div style="padding:0 16px 12px">
+      <div class="operator-grid" id="operatorGrid"></div>
+      <div class="other-op-row">
+        <input type="text" id="otherOpInput" placeholder="臨時支援 / 新進同仁">
+        <button onclick="selectOtherOp()">確認</button>
+      </div>
+    </div>
+  </div>
+  <!-- batch select -->
+  <div class="card">
+    <div class="card-title">📦 選擇批次</div>
+    <div class="batch-grid" id="batchGrid"></div>
+  </div>
+  <!-- form -->
+  <div id="stationForm"></div>
+  <div class="card" id="notesSection" style="display:none">
+    <div class="field" style="border-top:none">
+      <div class="field-label">📝 異常描述 / 備註</div>
+      <textarea id="stationNotes" rows="2" placeholder="有異常時請簡述..."></textarea>
+    </div>
+  </div>
+  <div class="submit-area" id="submitArea" style="display:none">
+    <button class="btn btn-secondary" onclick="goHome()">取消</button>
+    <button class="btn btn-primary" onclick="submitStation()">✅ 提交記錄</button>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div class="page" id="page-dashboard">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <h1>📊 當日看板</h1>
+    <div class="sub" id="dashDate"></div>
+  </div>
+  <div class="dashboard-summary" id="dashSummary"></div>
+  <div class="legend">
+    <div class="legend-item"><span class="status-dot dot-green"></span> 合格</div>
+    <div class="legend-item"><span class="status-dot dot-yellow"></span> 異常</div>
+    <div class="legend-item"><span class="status-dot dot-red"></span> 嚴重</div>
+    <div class="legend-item"><span class="status-dot dot-gray"></span> 未填</div>
+  </div>
+  <div style="margin:12px;background:#fff;border-radius:12px;overflow-x:auto;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+    <table class="dashboard-table" id="dashTable"></table>
+  </div>
+  <div style="padding:12px 16px">
+    <button class="btn btn-primary" onclick="exportData()" style="width:100%">📥 匯出今日數據 (CSV)</button>
+  </div>
+</div>
+
+<!-- ===== ADMIN ===== -->
+<div class="page" id="page-admin">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <h1>⚙️ 管理設定</h1>
+    <div class="sub">匯入工單 / 管理人員</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 匯入今日工單</div>
+    <div class="admin-info">
+      <strong>步驟：</strong>從 Google Sheets 工單複製當天頁籤的內容，貼到下方。<br>
+      系統會自動解析出每輪的批次與口味。<br><br>
+      <strong>或手動輸入格式（每行一筆）：</strong><br>
+      <code>輪次,烤箱,口味</code>（例：1,A,天使）
+    </div>
+    <div style="padding:0 16px 16px">
+      <textarea class="csv-area" id="csvInput" placeholder="在此貼上工單內容，或手動輸入：
+1,A,天使
+1,B,原味
+1,C,原味
+2,A,楓糖
+..."></textarea>
+      <button class="btn btn-primary" onclick="parseWorkOrder()" style="width:100%;margin-top:10px">📥 匯入工單</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📎 各站直連網址</div>
+    <div class="admin-info">
+      <strong>讓同仁將自己的工作站網址加到手機桌面，打開就直接進入。</strong>
+    </div>
+    <ul class="link-list" id="stationLinks" style="padding:0 16px 16px"></ul>
+  </div>
+  <div class="card">
+    <div class="card-title">👥 操作人員名單</div>
+    <div style="padding:0 16px 16px">
+      <textarea class="csv-area" id="opListInput" rows="4" placeholder="每行一位，例：
+張宏霖師傅
+楊百瀚師傅
+黃宥欣
+阿鶯
+佩榆"></textarea>
+      <button class="btn btn-primary" onclick="saveOperators()" style="width:100%;margin-top:10px">💾 儲存人員名單</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🗑️ 資料管理</div>
+    <div style="padding:0 16px 16px">
+      <button class="btn btn-secondary" onclick="if(confirm('確定清除今日所有記錄？')){localStorage.removeItem('bakery_records');showNotify('已清除','success')}" style="width:100%;background:#fdf0ef;color:var(--red)">清除今日記錄</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <div id="modalContent"></div>
+    <button class="btn btn-primary" onclick="closeModal()" style="width:100%;margin-top:16px">確認</button>
+  </div>
+</div>
+<div class="notify-banner" id="notifyBanner"></div>
+
+<script>
+// ========== CONFIG ==========
+const DEFAULT_OPERATORS = ['張宏霖師傅','楊百瀚師傅','黃宥欣','阿鶯','佩榆'];
+const AVATARS = ['👨‍🍳','🧑‍🍳','👩‍🍳','👩‍🍳','🧑‍🍳','👤','👤','👤','👤','👤'];
+
+const today = new Date();
+const dateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+
+const STATION_META = {
+  '均質': { color:'#2E6B4F', bg:'#E8F5EE', icon:'🥣', headerBg:'linear-gradient(135deg,#2E6B4F,#5BA67A)' },
+  '蛋白霜': { color:'#8B6914', bg:'#FFF8E1', icon:'☁️', headerBg:'linear-gradient(135deg,#8B6914,#D4A017)' },
+  '整面': { color:'#3A7D5C', bg:'#E0F2E9', icon:'🍰', headerBg:'linear-gradient(135deg,#3A7D5C,#6DBF8B)' },
+  '烤箱': { color:'#8B3A2F', bg:'#FDEDEC', icon:'🔥', headerBg:'linear-gradient(135deg,#8B3A2F,#C0392B)' },
+  '品判': { color:'#5B4080', bg:'#F3EFF8', icon:'👨‍🍳', headerBg:'linear-gradient(135deg,#5B4080,#7B5EA7)' },
+};
+
+const STATION_FIELDS = {
+  '均質': [
+    { id:'cheeseTemp', label:'乳酪溫度', unit:'℃', type:'number', step:'0.1', std:'13℃ ~ 15℃', min:13, max:15 },
+    { id:'homogTime', label:'乳酪均質時間', type:'time', std:"8'30 ~ 9'00", minSec:510, maxSec:540 },
+  ],
+  '蛋白霜': [
+    { id:'whipTime', label:'快速打發時間', type:'time', std:"5'20（固定）", minSec:305, maxSec:335 },
+    { id:'meringueWt', label:'蛋白霜比重', unit:'g', type:'number', step:'0.1', std:'68g ~ 70g', min:68, max:70 },
+    { id:'foldCount', label:'拌合次數', unit:'下', type:'number', step:'1', std:'55 ~ 60 下', min:55, max:60 },
+  ],
+  '整面': [
+    { id:'cutBubble', label:'筷子切泡', type:'select', std:'約 3 圈',
+      options:[{value:'',text:'請選擇'},{value:'約3圈',text:'約 3 圈（標準）'},{value:'少於3圈',text:'少於 3 圈'},{value:'多於3圈',text:'多於 3 圈'}], expected:'約3圈' },
+  ],
+  '烤箱': [
+    { id:'ovenTemp', label:'烘烤溫度（上火/下火）', type:'dual', std:'上火 230℃ / 下火 120℃',
+      sub:[{id:'ovenTempUp',placeholder:'上火',label:'上火',target:230,tolerance:5},{id:'ovenTempDown',placeholder:'下火',label:'下火',target:120,tolerance:5}] },
+    { id:'bakeTime', label:'烘烤時間', type:'dual', std:'進爐 25分 + 轉盤後 35~40分',
+      sub:[{id:'bakeTime1',placeholder:'進爐',label:'進爐(分)',target:25,tolerance:2},{id:'bakeTime2',placeholder:'轉盤後',label:'轉盤後(分)',min:35,max:40}] },
+  ],
+  '品判': [
+    { id:'doneness', label:'出爐熟度', type:'select', std:'觸摸後中心回彈',
+      options:[{value:'',text:'請選擇'},{value:'中心回彈',text:'✅ 中心回彈（標準）'},{value:'中心偏軟',text:'⚠️ 中心偏軟（未熟）'},{value:'中心偏硬',text:'⚠️ 中心偏硬（過熟）'},{value:'完全不回彈',text:'🔴 完全不回彈（嚴重）'}],
+      expected:'中心回彈', critical:'完全不回彈' },
+    { id:'colorCard', label:'出爐顏色', unit:'色卡', type:'number', step:'1', std:'色卡 4 ~ 6', min:4, max:6 },
+    { id:'defects', label:'外觀不良（有問題請點選）', type:'defects',
+      items:[{value:'泡泡',icon:'🫧',text:'表面有泡泡'},{value:'裂開',icon:'💔',text:'裂開'},{value:'過黑',icon:'🔥',text:'過黑（上色過深）'},{value:'烤不熟',icon:'🥶',text:'烤不熟'}] },
+  ],
+};
+
+// Default work order (from 0414 CSV)
+const DEFAULT_WORK_ORDER = [
+  {id:'1-A',round:1,oven:'A',flavor:'天使'},
+  {id:'1-B',round:1,oven:'B',flavor:'原味'},
+  {id:'1-C',round:1,oven:'C',flavor:'原味'},
+  {id:'2-A',round:2,oven:'A',flavor:'楓糖'},
+  {id:'2-B',round:2,oven:'B',flavor:'玫荔'},
+  {id:'2-C',round:2,oven:'C',flavor:'玫荔'},
+  {id:'3-A',round:3,oven:'A',flavor:'原巴'},
+];
+
+// ========== STATE ==========
+let currentOperator = localStorage.getItem('current_operator') || '';
+let currentStation = '';
+let currentBatch = '';
+
+function getOperators() {
+  const saved = localStorage.getItem('bakery_operators');
+  return saved ? JSON.parse(saved) : DEFAULT_OPERATORS;
+}
+function getWorkOrder() {
+  const saved = localStorage.getItem('bakery_workorder');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    if (parsed.date === dateStr) return parsed.batches;
+  }
+  return DEFAULT_WORK_ORDER;
+}
+function getRecords() { return JSON.parse(localStorage.getItem('bakery_records')||'[]'); }
+function saveRecords(r) { localStorage.setItem('bakery_records', JSON.stringify(r)); }
+
+// ========== ROUTING ==========
+function route() {
+  const hash = decodeURIComponent(location.hash.replace('#',''));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  if (hash === '看板') { document.getElementById('page-dashboard').classList.add('active'); renderDashboard(); }
+  else if (hash === '管理') { document.getElementById('page-admin').classList.add('active'); renderAdmin(); }
+  else if (STATION_META[hash]) { currentStation = hash; document.getElementById('page-station').classList.add('active'); renderStation(); }
+  else { document.getElementById('page-home').classList.add('active'); }
+
+  document.getElementById('homeDate').textContent = dateStr;
+  document.getElementById('dashDate').textContent = dateStr;
+  window.scrollTo(0,0);
+}
+
+function goHome() { location.hash = ''; }
+window.addEventListener('hashchange', route);
+
+// ========== STATION PAGE ==========
+function renderStation() {
+  const meta = STATION_META[currentStation];
+  const header = document.getElementById('stationHeader');
+  header.style.background = meta.headerBg;
+  document.getElementById('stationTitle').textContent = `${meta.icon} ${currentStation}站`;
+  document.getElementById('stationSub').textContent = dateStr;
+  currentBatch = '';
+
+  renderOperatorGrid();
+  renderBatchGrid();
+  renderFormFields();
+  document.getElementById('notesSection').style.display = 'none';
+  document.getElementById('submitArea').style.display = 'none';
+}
+
+function renderOperatorGrid() {
+  const ops = getOperators();
+  const grid = document.getElementById('operatorGrid');
+  grid.innerHTML = ops.map((name,i) => `
+    <div class="operator-btn ${currentOperator===name?'selected':''}" onclick="selectOp('${name}',this)">
+      <span class="avatar">${AVATARS[i]||'👤'}</span>${name}
+    </div>`).join('');
+}
+
+function selectOp(name, el) {
+  currentOperator = name;
+  localStorage.setItem('current_operator', name);
+  document.querySelectorAll('.operator-btn').forEach(b => b.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  document.getElementById('otherOpInput').value = '';
+  updateStationSub();
+}
+function selectOtherOp() {
+  const name = document.getElementById('otherOpInput').value.trim();
+  if (!name) { showNotify('請輸入姓名','warn'); return; }
+  currentOperator = name;
+  localStorage.setItem('current_operator', name);
+  document.querySelectorAll('.operator-btn').forEach(b => b.classList.remove('selected'));
+  updateStationSub();
+  showNotify(`✅ ${name}`,'success');
+}
+function updateStationSub() {
+  document.getElementById('stationSub').textContent = currentOperator ? `${currentOperator}｜${dateStr}` : dateStr;
+}
+
+function renderBatchGrid() {
+  const wo = getWorkOrder();
+  const records = getRecords();
+  const grid = document.getElementById('batchGrid');
+  let html = ''; let lastRound = 0;
+  wo.forEach(batch => {
+    if (batch.round !== lastRound) { html += `<div class="round-label">第 ${batch.round} 輪</div>`; lastRound = batch.round; }
+    const done = records.some(r => r.batch===batch.id && r.station===currentStation && r.date===dateStr);
+    const sel = currentBatch === batch.id;
+    html += `<div class="batch-btn ${done?'done':''} ${sel?'selected':''}" onclick="selectBatch('${batch.id}')">
+      <div class="batch-label">${batch.id}</div>
+      <div class="batch-detail">烤箱${batch.oven}｜${batch.flavor}</div></div>`;
+  });
+  grid.innerHTML = html;
+}
+
+function selectBatch(id) {
+  if (!currentOperator) { showNotify('請先選擇操作人員','warn'); return; }
+  currentBatch = id;
+  renderBatchGrid();
+  document.getElementById('notesSection').style.display = 'block';
+  document.getElementById('submitArea').style.display = 'flex';
+  clearFormFields();
+  // load existing
+  const rec = getRecords().find(r => r.batch===id && r.station===currentStation && r.date===dateStr);
+  if (rec) {
+    Object.entries(rec.data||{}).forEach(([k,v]) => { const el=document.getElementById(k); if(el)el.value=v; });
+    if (rec.defects) rec.defects.forEach(d => { const b=document.querySelector(`.defect-btn[data-defect="${d}"]`); if(b)b.classList.add('active'); });
+    if (rec.notes) document.getElementById('stationNotes').value = rec.notes;
+    revalidateAll();
+  }
+}
+
+function renderFormFields() {
+  const fields = STATION_FIELDS[currentStation];
+  const meta = STATION_META[currentStation];
+  let html = `<div class="card"><div class="card-title" style="background:${meta.bg};color:${meta.color}">${meta.icon} ${currentStation}站監控項目</div>`;
+  fields.forEach(f => {
+    html += `<div class="field"><div class="field-label">${f.label} <span class="badge" id="badge-${f.id}"></span></div>`;
+    if (f.std) html += `<div class="field-standard">標準：<span>${f.std}</span></div>`;
+    if (f.type==='number') html += `<div class="input-row"><input type="number" id="${f.id}" placeholder="${f.unit}" step="${f.step}" inputmode="decimal" oninput="validateNum('${f.id}',${f.min},${f.max},'${f.unit}')"><span class="input-unit">${f.unit}</span></div>`;
+    else if (f.type==='time') html += `<div class="input-row"><input type="number" id="${f.id}_m" placeholder="分" inputmode="numeric" oninput="validateTime('${f.id}',${f.minSec},${f.maxSec})"><span class="input-unit">分</span><input type="number" id="${f.id}_s" placeholder="秒" inputmode="numeric" oninput="validateTime('${f.id}',${f.minSec},${f.maxSec})"><span class="input-unit">秒</span></div>`;
+    else if (f.type==='select') { html += `<select id="${f.id}" onchange="validateSel('${f.id}','${f.expected}','${f.critical||''}')">`; f.options.forEach(o => html+=`<option value="${o.value}">${o.text}</option>`); html += `</select>`; }
+    else if (f.type==='dual') { html += `<div class="input-row">`; f.sub.forEach(s => html += `<div style="flex:1"><input type="number" id="${s.id}" placeholder="${s.placeholder}" inputmode="numeric" oninput="validateDual('${f.id}')"><div style="font-size:11px;color:#999;text-align:center;margin-top:2px">${s.label}</div></div>`); html += `</div>`; }
+    else if (f.type==='defects') { html += `<div class="defect-grid">`; f.items.forEach(it => html += `<div class="defect-btn" data-defect="${it.value}" onclick="toggleDefect(this)"><span class="icon">${it.icon}</span>${it.text}</div>`); html += `</div>`; }
+    html += `<div class="validation-msg" id="msg-${f.id}"></div></div>`;
+  });
+  html += `</div>`;
+  document.getElementById('stationForm').innerHTML = html;
+}
+
+// ========== VALIDATION ==========
+function validateNum(id,min,max,unit) {
+  const v=parseFloat(document.getElementById(id).value), b=document.getElementById('badge-'+id), m=document.getElementById('msg-'+id);
+  if(isNaN(v)){b.textContent='';m.textContent='';return}
+  if(v>=min&&v<=max){b.textContent='合格';b.className='badge badge-pass';m.textContent=''}
+  else{b.textContent='不合格';b.className='badge badge-fail';m.textContent=`⚠️ ${v<min?`低於${(min-v).toFixed(1)}${unit}`:`高於${(v-max).toFixed(1)}${unit}`}`;m.className='validation-msg warn'}
+}
+function validateTime(id,minS,maxS) {
+  const mm=parseInt(document.getElementById(id+'_m').value)||0, ss=parseInt(document.getElementById(id+'_s').value)||0, t=mm*60+ss;
+  const b=document.getElementById('badge-'+id), m=document.getElementById('msg-'+id);
+  if(!document.getElementById(id+'_m').value&&!document.getElementById(id+'_s').value){b.textContent='';m.textContent='';return}
+  if(t>=minS&&t<=maxS){b.textContent='合格';b.className='badge badge-pass';m.textContent=`${mm}分${ss}秒`;m.className='validation-msg ok'}
+  else{b.textContent='不合格';b.className='badge badge-fail';m.textContent=`⚠️ ${mm}分${ss}秒（偏離標準）`;m.className='validation-msg warn'}
+}
+function validateSel(id,exp,crit) {
+  const v=document.getElementById(id).value, b=document.getElementById('badge-'+id), m=document.getElementById('msg-'+id);
+  if(!v){b.textContent='';m.textContent='';return}
+  if(v===exp){b.textContent='合格';b.className='badge badge-pass';m.textContent=''}
+  else if(crit&&v===crit){b.textContent='嚴重';b.className='badge badge-critical';m.textContent='🔴 嚴重異常，請立即通知主管！';m.className='validation-msg error';showNotify('🔴 嚴重異常！請立即通知主管！','critical')}
+  else{b.textContent='不合格';b.className='badge badge-fail';m.textContent='⚠️ 請通知班長確認';m.className='validation-msg warn'}
+}
+function validateDual(id) {
+  const field=STATION_FIELDS[currentStation].find(f=>f.id===id), b=document.getElementById('badge-'+id), m=document.getElementById('msg-'+id);
+  let issues=[];
+  field.sub.forEach(s=>{const v=parseInt(document.getElementById(s.id).value);if(isNaN(v))return;if(s.target!==undefined){if(v<s.target-(s.tolerance||0)||v>s.target+(s.tolerance||0))issues.push(`${s.label} ${v}（標準${s.target}）`)}else if(s.min!==undefined){if(v<s.min||v>s.max)issues.push(`${s.label} ${v}（標準${s.min}~${s.max}）`)}});
+  if(!field.sub.some(s=>document.getElementById(s.id).value)){b.textContent='';m.textContent='';return}
+  if(!issues.length){b.textContent='合格';b.className='badge badge-pass';m.textContent=''}
+  else{b.textContent='不合格';b.className='badge badge-fail';m.textContent=`⚠️ ${issues.join('、')}`;m.className='validation-msg warn'}
+}
+function toggleDefect(el) {
+  el.classList.toggle('active');
+  const a=document.querySelectorAll('.defect-btn.active');
+  if(a.length) showNotify(`🔴 不良：${Array.from(a).map(b=>b.dataset.defect).join('、')}，請通知主管！`,'critical');
+}
+function revalidateAll() {
+  STATION_FIELDS[currentStation].forEach(f=>{
+    if(f.type==='number')validateNum(f.id,f.min,f.max,f.unit);
+    else if(f.type==='time')validateTime(f.id,f.minSec,f.maxSec);
+    else if(f.type==='select')validateSel(f.id,f.expected,f.critical||'');
+    else if(f.type==='dual')validateDual(f.id);
+  });
+}
+function clearFormFields() {
+  document.querySelectorAll('#stationForm input[type="number"]').forEach(e=>e.value='');
+  document.querySelectorAll('#stationForm select').forEach(e=>e.selectedIndex=0);
+  document.querySelectorAll('#stationForm .badge').forEach(b=>{b.textContent='';b.className='badge'});
+  document.querySelectorAll('#stationForm .validation-msg').forEach(m=>m.textContent='');
+  document.querySelectorAll('.defect-btn').forEach(b=>b.classList.remove('active'));
+  const notes=document.getElementById('stationNotes'); if(notes)notes.value='';
+}
+
+// ========== SUBMIT ==========
+function submitStation() {
+  if(!currentBatch){showNotify('請先選擇批次','warn');return}
+  if(!currentOperator){showNotify('請先選擇操作人員','warn');return}
+  const fields=STATION_FIELDS[currentStation], data={};
+  let pass=0,fail=0,crit=0;
+  fields.forEach(f=>{
+    if(f.type==='number')data[f.id]=document.getElementById(f.id).value;
+    else if(f.type==='time'){data[f.id+'_m']=document.getElementById(f.id+'_m').value;data[f.id+'_s']=document.getElementById(f.id+'_s').value}
+    else if(f.type==='select')data[f.id]=document.getElementById(f.id).value;
+    else if(f.type==='dual')f.sub.forEach(s=>data[s.id]=document.getElementById(s.id).value);
+  });
+  document.querySelectorAll('#stationForm .badge').forEach(b=>{if(b.textContent==='合格')pass++;else if(b.textContent==='不合格')fail++;else if(b.textContent==='嚴重')crit++});
+  const defects=Array.from(document.querySelectorAll('.defect-btn.active')).map(b=>b.dataset.defect);
+  const wo=getWorkOrder().find(w=>w.id===currentBatch);
+  const record={date:dateStr,timestamp:new Date().toISOString(),operator:currentOperator,station:currentStation,batch:currentBatch,flavor:wo?wo.flavor:'',data,defects,notes:document.getElementById('stationNotes').value,summary:{passCount:pass,failCount:fail,criticalCount:crit,defects}};
+  const records=getRecords();
+  const idx=records.findIndex(r=>r.batch===currentBatch&&r.station===currentStation&&r.date===dateStr);
+  if(idx>=0)records[idx]=record;else records.push(record);
+  saveRecords(records);
+
+  const isCrit=crit>0||defects.length>0;
+  document.getElementById('modalTitle').textContent=isCrit?'🔴 已記錄 — 請通知主管':fail>0?'🟡 已記錄 — 有異常項目':'✅ 已記錄 — 全部合格';
+  let h=`<div class="summary-item"><span>操作人員</span><span>${currentOperator}</span></div>
+    <div class="summary-item"><span>工作站</span><span>${currentStation}站</span></div>
+    <div class="summary-item"><span>批次</span><span>${currentBatch}（${wo?wo.flavor:''}）</span></div>
+    <div class="summary-item"><span>合格</span><span style="color:#27AE60;font-weight:700">${pass} 項</span></div>`;
+  if(fail)h+=`<div class="summary-item"><span>異常</span><span style="color:#E67E22;font-weight:700">${fail} 項</span></div>`;
+  if(crit)h+=`<div class="summary-item"><span>嚴重</span><span style="color:#E74C3C;font-weight:700">${crit} 項</span></div>`;
+  if(defects.length)h+=`<div class="summary-item"><span>外觀不良</span><span style="color:#E74C3C;font-weight:700">${defects.join('、')}</span></div>`;
+  document.getElementById('modalContent').innerHTML=h;
+  document.getElementById('resultModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('resultModal').classList.remove('show');
+  clearFormFields(); currentBatch=''; renderBatchGrid();
+  document.getElementById('notesSection').style.display='none';
+  document.getElementById('submitArea').style.display='none';
+}
+
+// ========== DASHBOARD ==========
+function renderDashboard() {
+  const records=getRecords().filter(r=>r.date===dateStr), wo=getWorkOrder();
+  const sNames=['均質','蛋白霜','整面','烤箱','品判'];
+  let completed=0, abnormal=0;
+  wo.forEach(batch=>{
+    const br=records.filter(r=>r.batch===batch.id);
+    if(br.length===5)completed++;
+    br.forEach(r=>{if(r.summary.failCount>0||r.summary.criticalCount>0||(r.summary.defects&&r.summary.defects.length>0))abnormal++});
+  });
+  document.getElementById('dashSummary').innerHTML=`
+    <div class="summary-card"><div class="num" style="color:var(--brand)">${wo.length}</div><div class="label">今日批次</div></div>
+    <div class="summary-card"><div class="num" style="color:#27AE60">${completed}</div><div class="label">完整記錄</div></div>
+    <div class="summary-card"><div class="num" style="color:${abnormal?'var(--red)':'#27AE60'}">${abnormal}</div><div class="label">異常站次</div></div>`;
+  let t=`<tr><th>批次</th><th>口味</th>`;
+  sNames.forEach(s=>t+=`<th>${s.charAt(0)}</th>`);
+  t+=`<th>人員</th></tr>`;
+  let lr=0;
+  wo.forEach(batch=>{
+    if(batch.round!==lr){t+=`<tr style="background:#e8e8e8"><td colspan="${sNames.length+3}" style="font-weight:700;text-align:left;padding:6px 8px;font-size:12px">第 ${batch.round} 輪</td></tr>`;lr=batch.round}
+    t+=`<tr><td style="font-weight:700">${batch.id}</td><td style="font-size:11px">${batch.flavor}</td>`;
+    let ops=new Set();
+    sNames.forEach(s=>{
+      const rec=records.find(r=>r.batch===batch.id&&r.station===s);
+      if(!rec)t+=`<td><span class="status-dot dot-gray"></span></td>`;
+      else if(rec.summary.criticalCount>0||(rec.summary.defects&&rec.summary.defects.length>0))t+=`<td><span class="status-dot dot-red"></span></td>`;
+      else if(rec.summary.failCount>0)t+=`<td><span class="status-dot dot-yellow"></span></td>`;
+      else t+=`<td><span class="status-dot dot-green"></span></td>`;
+      if(rec)ops.add(rec.operator);
+    });
+    t+=`<td style="font-size:10px">${[...ops].join('<br>')}</td></tr>`;
+  });
+  document.getElementById('dashTable').innerHTML=t;
+}
+
+// ========== ADMIN ==========
+function renderAdmin() {
+  // station links
+  const base = location.href.split('#')[0];
+  const links = document.getElementById('stationLinks');
+  links.innerHTML = [
+    {hash:'均質',label:'🥣 均質站',desc:'張貼在均質工位旁'},
+    {hash:'蛋白霜',label:'☁️ 蛋白霜站',desc:'張貼在打蛋白工位旁'},
+    {hash:'整面',label:'🍰 整面站',desc:'張貼在整面工位旁'},
+    {hash:'烤箱',label:'🔥 烤箱站',desc:'張貼在烤箱旁'},
+    {hash:'品判',label:'👨‍🍳 出爐品判',desc:'主廚使用'},
+    {hash:'看板',label:'📊 當日看板',desc:'班長/主管/會報'},
+  ].map(s=>`<li><a href="#${s.hash}">${s.label}<span style="font-weight:400;font-size:12px;color:var(--gray-dark);margin-left:8px">${s.desc}</span></a></li>`).join('');
+
+  // operator list
+  document.getElementById('opListInput').value = getOperators().join('\n');
+}
+
+function parseWorkOrder() {
+  const raw = document.getElementById('csvInput').value.trim();
+  if(!raw){showNotify('請貼上工單內容','warn');return}
+
+  const batches = [];
+  const lines = raw.split('\n');
+
+  // Try simple format first: round,oven,flavor
+  let simpleFormat = true;
+  for (const line of lines) {
+    const parts = line.split(',').map(s=>s.trim());
+    if (parts.length >= 3 && !isNaN(parseInt(parts[0]))) {
+      batches.push({id:`${parts[0]}-${parts[1]}`, round:parseInt(parts[0]), oven:parts[1], flavor:parts[2]});
+    } else { simpleFormat = false; break; }
+  }
+
+  if (!simpleFormat) {
+    // Try parsing from Google Sheets CSV format
+    batches.length = 0;
+    let currentRound = 0;
+    const ovenMap = {0:'A', 1:'B', 2:'C'};
+    for (let i=0; i<lines.length; i++) {
+      const line = lines[i];
+      // Detect round markers
+      const roundMatch = line.match(/(\d+)\s*[,\t]\s*輪/);
+      if (roundMatch) { currentRound = parseInt(roundMatch[1]); continue; }
+      // Detect layer headers with oven info
+      const layerMatch = line.match(/【烤箱([ABC])】/g);
+      if (layerMatch && currentRound > 0) {
+        // Next line should have flavors
+        if (i+2 < lines.length) {
+          const flavorLine = lines[i+2];
+          const parts = flavorLine.split(',');
+          layerMatch.forEach((m, idx) => {
+            const oven = m.match(/烤箱([ABC])/)[1];
+            const batchId = `${currentRound}-${oven}`;
+            if (!batches.find(b=>b.id===batchId)) {
+              // Find flavor in the parts
+              let flavor = '';
+              for (const p of parts) {
+                const trimmed = p.trim();
+                if (trimmed && trimmed !== '口味' && trimmed.length <= 4 && !/^\d/.test(trimmed) && !trimmed.includes('吋') && !trimmed.includes('小')) {
+                  flavor = trimmed; break;
+                }
+              }
+              if (flavor) batches.push({id:batchId, round:currentRound, oven, flavor});
+            }
+          });
+        }
+      }
+    }
+  }
+
+  if (batches.length === 0) {
+    showNotify('無法解析工單，請使用簡易格式','warn');
+    return;
+  }
+
+  // Sort
+  batches.sort((a,b) => a.round-b.round || a.oven.localeCompare(b.oven));
+
+  localStorage.setItem('bakery_workorder', JSON.stringify({date:dateStr, batches}));
+  showNotify(`✅ 已匯入 ${batches.length} 個批次`,'success');
+  document.getElementById('csvInput').value = batches.map(b=>`${b.round},${b.oven},${b.flavor}`).join('\n');
+}
+
+function saveOperators() {
+  const ops = document.getElementById('opListInput').value.trim().split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!ops.length){showNotify('請至少輸入一位','warn');return}
+  localStorage.setItem('bakery_operators', JSON.stringify(ops));
+  showNotify(`✅ 已儲存 ${ops.length} 位人員`,'success');
+}
+
+// ========== EXPORT ==========
+function exportData() {
+  const records=getRecords().filter(r=>r.date===dateStr);
+  if(!records.length){showNotify('今日尚無記錄','warn');return}
+  let csv='\uFEFF日期,時間,操作人員,工作站,批次,口味,合格數,異常數,嚴重數,外觀不良,備註,原始數據\n';
+  records.forEach(r=>{
+    csv+=`${r.date},${r.timestamp},${r.operator},${r.station},${r.batch},${r.flavor||''},`;
+    csv+=`${r.summary.passCount},${r.summary.failCount},${r.summary.criticalCount},`;
+    csv+=`"${(r.summary.defects||[]).join('、')}","${r.notes||''}","${JSON.stringify(r.data).replace(/"/g,'""')}"\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`生產監測_${dateStr.replace(/\//g,'')}.csv`;
+  a.click(); showNotify('✅ CSV 已下載','success');
+}
+
+// ========== NOTIFY ==========
+function showNotify(text,type) {
+  const b=document.getElementById('notifyBanner');
+  b.textContent=text;b.className=`notify-banner ${type}`;b.style.display='block';
+  setTimeout(()=>b.style.display='none',4000);
+}
+
+// ========== INIT ==========
+route();
+</script>
+</body>
+</html>
