@@ -39,12 +39,12 @@ Plans:
   2. 換 gid 重整 → 當日批次改變；斷網用 1hr 快取
   3. 工單存本地同時推到 Sheets 工單表
   4. 錯誤情境（未公開 Sheet / CSV 格式錯）有對應提示
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: 多層複選 UI + 確認 modal + selectedLayers state
-- [ ] 02-02: Sheet URL 綁定 + CSV 解析 + 快取 + 觸發流程
-- [ ] 02-03: 管理頁工單匯入自動 saveWorkOrder + PRD 文案校正
+- [x] 02-01-PLAN.md — 多層送出確認 modal（showConfirm API + submitStation 前置 guard）
+- [ ] 02-02-PLAN.md — Sheet 拉取三類錯誤訊息 + 重新拉工單 diff 覆蓋確認
+- [x] 02-03-PLAN.md — PRD §10.2 / §8 / §12 文案校正
 
 ### Phase 3: 離線同步佇列 + 可靠性
 **Goal**: 把 fire-and-forget 同步換成可重試佇列，斷網不丟資料
