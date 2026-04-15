@@ -49,40 +49,38 @@
   .s-烤箱{background:#FDEDEC;color:#8B3A2F}
   .s-品判{background:#F3EFF8;color:#5B4080}
   .s-看板{background:#FFF8E7;color:#B07D1F;border:2px dashed var(--gold)}
-  .s-管理{background:#F0F0F0;color:#555;border:2px dashed #aaa}
+  .s-分析{background:var(--blue-light);color:var(--blue);border:2px dashed var(--blue)}
+  .s-管理{background:#eee;color:#555;border:2px dashed #ccc}
   /* batch */
-  .batch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px}
-  .batch-btn{padding:12px 8px;border:2px solid #e0e0e0;border-radius:10px;background:#fafafa;text-align:center;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
-  .batch-btn.selected{border-color:var(--brand-mid);background:var(--brand-light)}
-  .batch-btn.done{border-color:#27AE60;background:#E8F8E8}
-  .batch-btn.done::after{content:' ✅';font-size:11px}
-  .batch-btn .batch-label{font-size:16px;font-weight:700}
-  .batch-btn .batch-detail{font-size:11px;color:var(--gray-dark);margin-top:2px}
-  .round-label{grid-column:1/-1;font-size:13px;font-weight:700;color:var(--brand);padding:6px 0 2px;border-bottom:1px solid #eee;margin-top:4px}
-  /* form fields */
-  .field{padding:14px 16px;border-top:1px solid #f0f0f0}
-  .field-label{font-size:14px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
-  .field-standard{font-size:12px;color:#888;margin-bottom:8px}
-  .field-standard span{background:#f0f7ff;color:var(--brand);padding:2px 8px;border-radius:4px;font-weight:500}
-  input[type="text"],input[type="number"],select,textarea{width:100%;padding:12px;border:1.5px solid #ddd;border-radius:8px;font-size:16px;background:#fafafa;transition:border-color .2s;-webkit-appearance:none;font-family:inherit}
-  input:focus,select:focus,textarea:focus{border-color:var(--brand-mid);outline:none;background:#fff}
-  .input-row{display:flex;gap:10px;align-items:center}
-  .input-row>*{flex:1}
-  .input-unit{font-weight:600;flex:none!important;font-size:14px;color:var(--gray-dark)}
-  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
-  .badge-pass{background:#d4edda;color:#155724}
-  .badge-fail{background:#fff3cd;color:#856404}
-  .badge-critical{background:#f8d7da;color:#721c24}
-  .validation-msg{font-size:12px;margin-top:4px;font-weight:500}
-  .validation-msg.warn{color:var(--orange)}
-  .validation-msg.error{color:var(--red)}
-  .validation-msg.ok{color:var(--green)}
-  .defect-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 0}
-  .defect-btn{padding:14px 12px;border:2px solid #ddd;border-radius:10px;background:#fafafa;text-align:center;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;user-select:none}
-  .defect-btn.active{border-color:var(--red);background:#fdf0ef;color:#C0392B}
-  .defect-btn .icon{font-size:24px;display:block;margin-bottom:4px}
-  .submit-area{position:fixed;bottom:0;left:0;right:0;background:#fff;padding:12px 16px;border-top:1px solid #eee;box-shadow:0 -2px 8px rgba(0,0,0,.08);z-index:100;display:flex;gap:10px}
-  .btn{flex:1;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+  .batch-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px 12px}
+  .batch-btn{padding:12px 6px;border:2px solid #ddd;border-radius:10px;text-align:center;cursor:pointer;transition:all .2s}
+  .batch-btn.selected{border-color:var(--brand);background:var(--brand-light)}
+  .batch-btn.done{border-color:#27AE60;background:#E8F8EE}
+  .batch-btn .batch-label{font-weight:700;font-size:16px}
+  .batch-btn .batch-detail{font-size:11px;color:#888;margin-top:2px}
+  .round-label{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--brand);padding:6px 0 2px;border-top:1px solid #eee}
+  /* form */
+  .field{padding:12px 16px;border-top:1px solid #f0f0f0}
+  .field-label{font-weight:700;font-size:14px;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+  .field-standard{font-size:12px;color:#27AE60;margin-bottom:6px}
+  .field-standard span{background:#E8F8EE;padding:2px 8px;border-radius:4px}
+  .badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
+  .badge-pass{background:#E8F8EE;color:#27AE60}
+  .badge-fail{background:#FEF3E2;color:#E67E22}
+  .badge-critical{background:#FDEDEC;color:#E74C3C}
+  .input-row{display:flex;align-items:center;gap:8px}
+  .input-row input{flex:1;padding:12px;border:1.5px solid #ddd;border-radius:8px;font-size:18px;font-family:inherit;text-align:center}
+  .input-unit{font-size:14px;color:#888;min-width:20px}
+  select{width:100%;padding:12px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;background:#fff}
+  textarea{width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical}
+  .validation-msg{font-size:12px;margin-top:4px;min-height:16px}
+  .validation-msg.warn{color:#E67E22}.validation-msg.error{color:#E74C3C}.validation-msg.ok{color:#27AE60}
+  .defect-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .defect-btn{padding:12px 8px;border:2px solid #eee;border-radius:10px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+  .defect-btn.active{border-color:var(--red);background:var(--red-light);color:var(--red)}
+  .defect-btn .icon{display:block;font-size:22px;margin-bottom:4px}
+  .submit-area{display:flex;gap:10px;padding:16px;position:fixed;bottom:0;left:0;right:0;background:#fff;box-shadow:0 -2px 8px rgba(0,0,0,.1);z-index:100}
+  .btn{flex:1;padding:14px;border:none;border-radius:var(--radius);font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}
   .btn-primary{background:var(--brand);color:#fff}
   .btn-primary:active{background:#2D5E4A}
   .btn-secondary{background:#f0f0f0;color:#333;flex:.35}
@@ -101,23 +99,56 @@
   .summary-card .label{font-size:12px;color:var(--gray-dark);margin-top:4px}
   .legend{display:flex;gap:16px;justify-content:center;padding:8px 16px;font-size:12px;color:var(--gray-dark)}
   .legend-item{display:flex;align-items:center;gap:4px}
+  /* date nav */
+  .date-nav{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px}
+  .date-nav button{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .date-nav button:active{background:rgba(255,255,255,.4)}
+  .date-nav .date-label{font-size:15px;font-weight:700;min-width:120px;text-align:center}
+  .date-nav input[type="date"]{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 8px;border-radius:6px;font-size:13px;font-family:inherit}
+  /* analytics */
+  .analytics-section{padding:12px 16px}
+  .analytics-section h3{font-size:14px;color:var(--brand);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--brand-light)}
+  .date-range-row{display:flex;gap:8px;align-items:center;padding:12px 16px;flex-wrap:wrap}
+  .date-range-row label{font-size:13px;font-weight:600;color:#555}
+  .date-range-row input[type="date"]{padding:8px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit}
+  .date-range-row button{padding:8px 16px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .stat-card{background:#fff;border-radius:var(--radius);padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .stat-card .stat-num{font-size:26px;font-weight:800}
+  .stat-card .stat-label{font-size:11px;color:var(--gray-dark);margin-top:2px}
+  .bar-chart{margin-bottom:16px}
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .bar-label{font-size:12px;font-weight:600;min-width:55px;text-align:right;color:#444}
+  .bar-track{flex:1;height:24px;background:#f0f0f0;border-radius:6px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;border-radius:6px;transition:width .5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+  .bar-fill.good{background:linear-gradient(90deg,#27AE60,#2ECC71)}
+  .bar-fill.warn{background:linear-gradient(90deg,#E67E22,#F39C12)}
+  .bar-fill.bad{background:linear-gradient(90deg,#C0392B,#E74C3C)}
+  .bar-value{font-size:11px;font-weight:700;color:#fff;white-space:nowrap}
+  .bar-value-outside{font-size:11px;font-weight:700;color:#888;margin-left:4px}
+  .detail-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+  .detail-table th{background:var(--brand-light);color:var(--brand);padding:8px 6px;text-align:left;font-size:11px}
+  .detail-table td{padding:6px;border-bottom:1px solid #f0f0f0}
+  .detail-table tr:hover{background:#f9f9f9}
+  /* modal & notify */
+  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:24px}
+  .modal-overlay.show{display:flex}
+  .modal{background:#fff;border-radius:16px;padding:24px;max-width:400px;width:100%;max-height:85vh;overflow-y:auto}
+  .modal h2{text-align:center;margin-bottom:16px}
+  .summary-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:14px}
+  /* admin */
+  .admin-info{padding:8px 16px;font-size:13px;color:#555;line-height:1.6}
+  .csv-area{width:100%;min-height:80px;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;font-family:monospace}
+  .link-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .link-list a{display:block;padding:12px 16px;background:var(--brand-light);border-radius:8px;color:var(--brand);text-decoration:none;font-weight:600;font-size:14px}
+  .file-upload-area{border:2px dashed #ccc;border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin:0 16px 16px}
+  .file-upload-area:hover{border-color:var(--brand);background:var(--brand-light)}
+  .file-upload-area input{display:none}
   .notify-banner{display:none;position:fixed;top:0;left:0;right:0;padding:14px;text-align:center;font-weight:700;font-size:14px;z-index:300;animation:slideDown .3s ease}
   .notify-banner.warn{background:#FFF3CD;color:#856404}
   .notify-banner.critical{background:#F8D7DA;color:#721C24}
   .notify-banner.success{background:#D4EDDA;color:#155724}
   @keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
-  .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;justify-content:center;align-items:center}
-  .modal-overlay.show{display:flex}
-  .modal{background:#fff;border-radius:16px;padding:24px;margin:16px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto}
-  .modal h2{font-size:18px;margin-bottom:16px;text-align:center}
-  .modal .summary-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
-  /* admin */
-  .admin-info{padding:16px;font-size:13px;color:var(--gray-dark);line-height:1.6}
-  .admin-info strong{color:#1a1a1a}
-  .csv-area{width:100%;min-height:120px;padding:12px;border:1.5px dashed #bbb;border-radius:8px;font-size:13px;font-family:monospace;background:#fafafa;resize:vertical}
-  .link-list{list-style:none;padding:0}
-  .link-list li{margin-bottom:8px}
-  .link-list a{display:block;padding:12px 16px;background:var(--brand-light);border-radius:8px;color:var(--brand);text-decoration:none;font-weight:600;font-size:14px}
 </style>
 </head>
 <body>
@@ -139,8 +170,11 @@
       <a class="station-card s-看板" href="#看板"><span class="icon">📊</span>當日看板<div class="count">全批次總覽</div></a>
     </div>
   </div>
-  <div class="home-section">
-    <a class="station-card s-管理" href="#管理" style="display:block;margin-top:8px"><span class="icon">⚙️</span>管理設定<div class="count">匯入工單 / 人員設定</div></a>
+  <div class="home-section" style="padding-top:0">
+    <div class="station-grid">
+      <a class="station-card s-分析" href="#分析"><span class="icon">📈</span>數據分析<div class="count">良率統計 / 趨勢</div></a>
+      <a class="station-card s-管理" href="#管理"><span class="icon">⚙️</span>管理設定<div class="count">匯入工單 / 人員</div></a>
+    </div>
   </div>
 </div>
 
@@ -185,8 +219,12 @@
 <div class="page" id="page-dashboard">
   <div class="header">
     <button class="back-btn" onclick="goHome()">← 返回</button>
-    <h1>📊 當日看板</h1>
-    <div class="sub" id="dashDate"></div>
+    <h1>📊 生產看板</h1>
+    <div class="date-nav">
+      <button onclick="dashDateShift(-1)">◀</button>
+      <span class="date-label" id="dashDateLabel"></span>
+      <button onclick="dashDateShift(1)">▶</button>
+    </div>
   </div>
   <div class="dashboard-summary" id="dashSummary"></div>
   <div class="legend">
@@ -199,8 +237,25 @@
     <table class="dashboard-table" id="dashTable"></table>
   </div>
   <div style="padding:12px 16px">
-    <button class="btn btn-primary" onclick="exportData()" style="width:100%">📥 匯出今日數據 (CSV)</button>
+    <button class="btn btn-primary" onclick="exportData()" style="width:100%">📥 匯出此日數據 (CSV)</button>
   </div>
+</div>
+
+<!-- ===== ANALYTICS ===== -->
+<div class="page" id="page-analytics">
+  <div class="header" style="background:linear-gradient(135deg,var(--blue),#4A9BBF)">
+    <button class="back-btn" onclick="goHome()">← 返回</button>
+    <h1>📈 數據分析</h1>
+    <div class="sub">良率統計與趨勢分析</div>
+  </div>
+  <div class="date-range-row">
+    <label>從</label>
+    <input type="date" id="analyticsFrom">
+    <label>到</label>
+    <input type="date" id="analyticsTo">
+    <button onclick="renderAnalytics()">查詢</button>
+  </div>
+  <div id="analyticsContent"></div>
 </div>
 
 <!-- ===== ADMIN ===== -->
@@ -213,13 +268,19 @@
   <div class="card">
     <div class="card-title">📋 匯入今日工單</div>
     <div class="admin-info">
-      <strong>步驟：</strong>從 Google Sheets 工單複製當天頁籤的內容，貼到下方。<br>
-      系統會自動解析出每輪的批次與口味。<br><br>
-      <strong>或手動輸入格式（每行一筆）：</strong><br>
-      <code>輪次,烤箱,口味</code>（例：1,A,天使）
+      <strong>方法一：上傳 CSV 檔案</strong><br>
+      從 Google Sheets 下載 CSV 檔，系統自動解析輪次與口味。
+    </div>
+    <div class="file-upload-area" onclick="document.getElementById('csvFileInput').click()">
+      <input type="file" id="csvFileInput" accept=".csv,.tsv,.txt" onchange="handleFileUpload(event)">
+      📁 點擊選擇工單 CSV 檔案
+    </div>
+    <div class="admin-info">
+      <strong>方法二：手動輸入</strong><br>
+      每行格式：<code>輪次,烤箱,口味</code>（例：1,A,天使）
     </div>
     <div style="padding:0 16px 16px">
-      <textarea class="csv-area" id="csvInput" placeholder="在此貼上工單內容，或手動輸入：
+      <textarea class="csv-area" id="csvInput" placeholder="在此貼上或手動輸入：
 1,A,天使
 1,B,原味
 1,C,原味
@@ -248,9 +309,15 @@
     </div>
   </div>
   <div class="card">
+    <div class="card-title">💾 資料備份</div>
+    <div style="padding:0 16px 16px;display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="exportAllData()" style="flex:1">📥 匯出全部記錄</button>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-title">🗑️ 資料管理</div>
     <div style="padding:0 16px 16px">
-      <button class="btn btn-secondary" onclick="if(confirm('確定清除今日所有記錄？')){localStorage.removeItem('bakery_records');showNotify('已清除','success')}" style="width:100%;background:#fdf0ef;color:var(--red)">清除今日記錄</button>
+      <button class="btn btn-secondary" onclick="if(confirm('確定清除今日所有記錄？此操作無法復原。')){const r=getRecords().filter(x=>x.date!==dateStr);saveRecords(r);showNotify('已清除今日記錄','success')}" style="width:100%;background:#fdf0ef;color:var(--red)">清除今日記錄</button>
     </div>
   </div>
 </div>
@@ -326,34 +393,78 @@ const DEFAULT_WORK_ORDER = [
 let currentOperator = localStorage.getItem('current_operator') || '';
 let currentStation = '';
 let currentBatch = '';
+let dashViewDate = null; // Date object for dashboard view
 
 function getOperators() {
   const saved = localStorage.getItem('bakery_operators');
   return saved ? JSON.parse(saved) : DEFAULT_OPERATORS;
 }
-function getWorkOrder() {
+function getWorkOrder(forDate) {
+  const targetDate = forDate || dateStr;
   const saved = localStorage.getItem('bakery_workorder');
   if (saved) {
     const parsed = JSON.parse(saved);
-    if (parsed.date === dateStr) return parsed.batches;
+    if (parsed.date === targetDate) return parsed.batches;
   }
-  return DEFAULT_WORK_ORDER;
+  if (targetDate === dateStr) return DEFAULT_WORK_ORDER;
+  // For historical dates, try to find work order from records
+  const records = getRecords().filter(r => r.date === targetDate);
+  if (records.length) {
+    const batchMap = {};
+    records.forEach(r => {
+      if (!batchMap[r.batch]) batchMap[r.batch] = { id: r.batch, flavor: r.flavor || '' };
+    });
+    return Object.values(batchMap).map(b => {
+      const parts = b.id.split('-');
+      return { id: b.id, round: parseInt(parts[0]) || 1, oven: parts[1] || 'A', flavor: b.flavor };
+    }).sort((a,b) => a.round - b.round || a.oven.localeCompare(b.oven));
+  }
+  return [];
 }
 function getRecords() { return JSON.parse(localStorage.getItem('bakery_records')||'[]'); }
 function saveRecords(r) { localStorage.setItem('bakery_records', JSON.stringify(r)); }
+
+// ========== DATE HELPERS ==========
+function fmtDate(d) {
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+function parseDate(s) {
+  const p = s.split('/');
+  return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+}
+function toInputDate(s) {
+  return s.replace(/\//g, '-');
+}
+function fromInputDate(s) {
+  return s.replace(/-/g, '/');
+}
+
+// Get all unique dates from records
+function getAllRecordDates() {
+  const dates = new Set();
+  getRecords().forEach(r => dates.add(r.date));
+  return [...dates].sort();
+}
 
 // ========== ROUTING ==========
 function route() {
   const hash = decodeURIComponent(location.hash.replace('#',''));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 
-  if (hash === '看板') { document.getElementById('page-dashboard').classList.add('active'); renderDashboard(); }
+  if (hash === '看板') {
+    document.getElementById('page-dashboard').classList.add('active');
+    dashViewDate = new Date();
+    renderDashboard();
+  }
+  else if (hash === '分析') {
+    document.getElementById('page-analytics').classList.add('active');
+    initAnalytics();
+  }
   else if (hash === '管理') { document.getElementById('page-admin').classList.add('active'); renderAdmin(); }
   else if (STATION_META[hash]) { currentStation = hash; document.getElementById('page-station').classList.add('active'); renderStation(); }
   else { document.getElementById('page-home').classList.add('active'); }
 
   document.getElementById('homeDate').textContent = dateStr;
-  document.getElementById('dashDate').textContent = dateStr;
   window.scrollTo(0,0);
 }
 
@@ -429,7 +540,6 @@ function selectBatch(id) {
   document.getElementById('notesSection').style.display = 'block';
   document.getElementById('submitArea').style.display = 'flex';
   clearFormFields();
-  // load existing
   const rec = getRecords().find(r => r.batch===id && r.station===currentStation && r.date===dateStr);
   if (rec) {
     Object.entries(rec.data||{}).forEach(([k,v]) => { const el=document.getElementById(k); if(el)el.value=v; });
@@ -550,45 +660,269 @@ function closeModal() {
 }
 
 // ========== DASHBOARD ==========
+function dashDateShift(delta) {
+  dashViewDate.setDate(dashViewDate.getDate() + delta);
+  renderDashboard();
+}
+
 function renderDashboard() {
-  const records=getRecords().filter(r=>r.date===dateStr), wo=getWorkOrder();
-  const sNames=['均質','蛋白霜','整面','烤箱','品判'];
-  let completed=0, abnormal=0;
-  wo.forEach(batch=>{
-    const br=records.filter(r=>r.batch===batch.id);
-    if(br.length===5)completed++;
-    br.forEach(r=>{if(r.summary.failCount>0||r.summary.criticalCount>0||(r.summary.defects&&r.summary.defects.length>0))abnormal++});
+  const viewDateStr = fmtDate(dashViewDate);
+  const isToday = viewDateStr === dateStr;
+  document.getElementById('dashDateLabel').textContent = viewDateStr + (isToday ? ' (今日)' : '');
+
+  const records = getRecords().filter(r => r.date === viewDateStr);
+  const wo = getWorkOrder(viewDateStr);
+  const sNames = ['均質','蛋白霜','整面','烤箱','品判'];
+  let completed = 0, abnormal = 0;
+
+  if (wo.length === 0 && records.length > 0) {
+    // Reconstruct work order from records
+    const batchMap = {};
+    records.forEach(r => {
+      if (!batchMap[r.batch]) batchMap[r.batch] = { id: r.batch, flavor: r.flavor || '' };
+    });
+    const reconstructed = Object.values(batchMap).map(b => {
+      const parts = b.id.split('-');
+      return { id: b.id, round: parseInt(parts[0]) || 1, oven: parts[1] || 'A', flavor: b.flavor };
+    }).sort((a,b) => a.round - b.round || a.oven.localeCompare(b.oven));
+    wo.push(...reconstructed);
+  }
+
+  wo.forEach(batch => {
+    const br = records.filter(r => r.batch === batch.id);
+    if (br.length === 5) completed++;
+    br.forEach(r => { if (r.summary.failCount > 0 || r.summary.criticalCount > 0 || (r.summary.defects && r.summary.defects.length > 0)) abnormal++ });
   });
-  document.getElementById('dashSummary').innerHTML=`
-    <div class="summary-card"><div class="num" style="color:var(--brand)">${wo.length}</div><div class="label">今日批次</div></div>
+
+  document.getElementById('dashSummary').innerHTML = `
+    <div class="summary-card"><div class="num" style="color:var(--brand)">${wo.length}</div><div class="label">${isToday?'今日':'當日'}批次</div></div>
     <div class="summary-card"><div class="num" style="color:#27AE60">${completed}</div><div class="label">完整記錄</div></div>
     <div class="summary-card"><div class="num" style="color:${abnormal?'var(--red)':'#27AE60'}">${abnormal}</div><div class="label">異常站次</div></div>`;
-  let t=`<tr><th>批次</th><th>口味</th>`;
-  sNames.forEach(s=>t+=`<th>${s.charAt(0)}</th>`);
-  t+=`</tr>`;
-  let lr=0;
-  wo.forEach(batch=>{
-    if(batch.round!==lr){t+=`<tr style="background:#e8e8e8"><td colspan="${sNames.length+2}" style="font-weight:700;text-align:left;padding:6px 8px;font-size:12px">第 ${batch.round} 輪</td></tr>`;lr=batch.round}
-    t+=`<tr><td style="font-weight:700">${batch.id}</td><td style="font-size:11px">${batch.flavor}</td>`;
-    sNames.forEach(s=>{
-      const rec=records.find(r=>r.batch===batch.id&&r.station===s);
-      if(!rec){t+=`<td><div class="station-cell"><span class="status-dot dot-gray"></span></div></td>`}
-      else{
-        let dotClass='dot-green';
-        if(rec.summary.criticalCount>0||(rec.summary.defects&&rec.summary.defects.length>0))dotClass='dot-red';
-        else if(rec.summary.failCount>0)dotClass='dot-yellow';
-        const shortName=rec.operator.replace(/師傅$/,'').slice(-2);
-        t+=`<td><div class="station-cell"><span class="status-dot ${dotClass}"></span><span class="op-name">${shortName}</span></div></td>`;
+
+  let t = `<tr><th>批次</th><th>口味</th>`;
+  sNames.forEach(s => t += `<th>${s.charAt(0)}</th>`);
+  t += `</tr>`;
+  let lr = 0;
+  wo.forEach(batch => {
+    if (batch.round !== lr) { t += `<tr style="background:#e8e8e8"><td colspan="${sNames.length+2}" style="font-weight:700;text-align:left;padding:6px 8px;font-size:12px">第 ${batch.round} 輪</td></tr>`; lr = batch.round; }
+    t += `<tr><td style="font-weight:700">${batch.id}</td><td style="font-size:11px">${batch.flavor}</td>`;
+    sNames.forEach(s => {
+      const rec = records.find(r => r.batch === batch.id && r.station === s);
+      if (!rec) { t += `<td><div class="station-cell"><span class="status-dot dot-gray"></span></div></td>` }
+      else {
+        let dotClass = 'dot-green';
+        if (rec.summary.criticalCount > 0 || (rec.summary.defects && rec.summary.defects.length > 0)) dotClass = 'dot-red';
+        else if (rec.summary.failCount > 0) dotClass = 'dot-yellow';
+        const shortName = rec.operator.replace(/師傅$/, '').slice(-2);
+        t += `<td><div class="station-cell"><span class="status-dot ${dotClass}"></span><span class="op-name">${shortName}</span></div></td>`;
       }
     });
-    t+=`</tr>`;
+    t += `</tr>`;
   });
-  document.getElementById('dashTable').innerHTML=t;
+
+  if (wo.length === 0) {
+    t += `<tr><td colspan="${sNames.length+2}" style="padding:24px;color:#999">此日期無工單或記錄資料</td></tr>`;
+  }
+  document.getElementById('dashTable').innerHTML = t;
+}
+
+// ========== ANALYTICS ==========
+function initAnalytics() {
+  const dates = getAllRecordDates();
+  const toEl = document.getElementById('analyticsTo');
+  const fromEl = document.getElementById('analyticsFrom');
+
+  toEl.value = toInputDate(dateStr);
+  if (dates.length > 0) {
+    // Default: last 7 days or earliest record
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 6);
+    const earliest = parseDate(dates[0]);
+    fromEl.value = toInputDate(fmtDate(weekAgo > earliest ? weekAgo : earliest));
+  } else {
+    fromEl.value = toInputDate(dateStr);
+  }
+  renderAnalytics();
+}
+
+function renderAnalytics() {
+  const fromStr = fromInputDate(document.getElementById('analyticsFrom').value);
+  const toStr = fromInputDate(document.getElementById('analyticsTo').value);
+  const fromD = parseDate(fromStr), toD = parseDate(toStr);
+  toD.setHours(23, 59, 59);
+
+  const allRecords = getRecords().filter(r => {
+    const d = parseDate(r.date);
+    return d >= fromD && d <= toD;
+  });
+
+  const container = document.getElementById('analyticsContent');
+  if (allRecords.length === 0) {
+    container.innerHTML = `<div class="card" style="text-align:center;padding:40px;color:#999">
+      <div style="font-size:40px;margin-bottom:12px">📭</div>
+      此期間尚無記錄資料<br><small>請先在各工作站填寫生產監測資料</small></div>`;
+    return;
+  }
+
+  const sNames = ['均質','蛋白霜','整面','烤箱','品判'];
+  const uniqueDates = [...new Set(allRecords.map(r => r.date))].sort();
+  const totalRecords = allRecords.length;
+  let totalPass = 0, totalFail = 0, totalCrit = 0;
+  allRecords.forEach(r => {
+    totalPass += r.summary.passCount || 0;
+    totalFail += r.summary.failCount || 0;
+    totalCrit += r.summary.criticalCount || 0;
+    if (r.summary.defects && r.summary.defects.length > 0) totalCrit++;
+  });
+  const totalChecks = totalPass + totalFail + totalCrit;
+  const overallPassRate = totalChecks > 0 ? (totalPass / totalChecks * 100) : 0;
+
+  let html = '';
+
+  // Summary cards
+  html += `<div class="card"><div class="card-title">📋 概覽（${fromStr} ~ ${toStr}）</div>
+    <div class="stat-grid" style="padding:0 16px 16px">
+      <div class="stat-card"><div class="stat-num" style="color:var(--brand)">${uniqueDates.length}</div><div class="stat-label">記錄天數</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--blue)">${totalRecords}</div><div class="stat-label">記錄筆數</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:${overallPassRate>=90?'#27AE60':overallPassRate>=70?'var(--yellow)':'var(--red)'}">${overallPassRate.toFixed(1)}%</div><div class="stat-label">整體良率</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:${totalCrit?'var(--red)':'#27AE60'}">${totalCrit}</div><div class="stat-label">嚴重異常</div></div>
+    </div></div>`;
+
+  // Pass rate by station
+  html += `<div class="card"><div class="card-title">🏭 各站良率</div><div style="padding:0 16px 16px"><div class="bar-chart">`;
+  sNames.forEach(s => {
+    const stationRecs = allRecords.filter(r => r.station === s);
+    let sp = 0, sf = 0, sc = 0;
+    stationRecs.forEach(r => { sp += r.summary.passCount||0; sf += r.summary.failCount||0; sc += r.summary.criticalCount||0; if(r.summary.defects&&r.summary.defects.length>0)sc++; });
+    const total = sp + sf + sc;
+    const rate = total > 0 ? (sp / total * 100) : 0;
+    const cls = rate >= 90 ? 'good' : rate >= 70 ? 'warn' : 'bad';
+    html += `<div class="bar-row"><span class="bar-label">${s}</span><div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.max(rate,3)}%"><span class="bar-value">${rate.toFixed(0)}%</span></div></div><span class="bar-value-outside">${stationRecs.length}筆</span></div>`;
+  });
+  html += `</div></div></div>`;
+
+  // Pass rate by operator
+  const operators = [...new Set(allRecords.map(r => r.operator))];
+  if (operators.length > 0) {
+    html += `<div class="card"><div class="card-title">👥 人員良率</div><div style="padding:0 16px 16px"><div class="bar-chart">`;
+    operators.forEach(op => {
+      const opRecs = allRecords.filter(r => r.operator === op);
+      let sp = 0, sf = 0, sc = 0;
+      opRecs.forEach(r => { sp += r.summary.passCount||0; sf += r.summary.failCount||0; sc += r.summary.criticalCount||0; if(r.summary.defects&&r.summary.defects.length>0)sc++; });
+      const total = sp + sf + sc;
+      const rate = total > 0 ? (sp / total * 100) : 0;
+      const cls = rate >= 90 ? 'good' : rate >= 70 ? 'warn' : 'bad';
+      const shortName = op.replace(/師傅$/, '');
+      html += `<div class="bar-row"><span class="bar-label">${shortName}</span><div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.max(rate,3)}%"><span class="bar-value">${rate.toFixed(0)}%</span></div></div><span class="bar-value-outside">${opRecs.length}筆</span></div>`;
+    });
+    html += `</div></div></div>`;
+  }
+
+  // Pass rate by flavor
+  const flavors = [...new Set(allRecords.map(r => r.flavor).filter(Boolean))];
+  if (flavors.length > 0) {
+    html += `<div class="card"><div class="card-title">🧀 口味別良率</div><div style="padding:0 16px 16px"><div class="bar-chart">`;
+    flavors.forEach(fl => {
+      const flRecs = allRecords.filter(r => r.flavor === fl);
+      let sp = 0, sf = 0, sc = 0;
+      flRecs.forEach(r => { sp += r.summary.passCount||0; sf += r.summary.failCount||0; sc += r.summary.criticalCount||0; if(r.summary.defects&&r.summary.defects.length>0)sc++; });
+      const total = sp + sf + sc;
+      const rate = total > 0 ? (sp / total * 100) : 0;
+      const cls = rate >= 90 ? 'good' : rate >= 70 ? 'warn' : 'bad';
+      html += `<div class="bar-row"><span class="bar-label">${fl}</span><div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.max(rate,3)}%"><span class="bar-value">${rate.toFixed(0)}%</span></div></div><span class="bar-value-outside">${flRecs.length}筆</span></div>`;
+    });
+    html += `</div></div></div>`;
+  }
+
+  // Cross analysis: operator × station
+  if (operators.length > 1 && allRecords.length > 5) {
+    html += `<div class="card"><div class="card-title">📊 人員 × 工作站 交叉分析</div>
+      <div style="padding:0 12px 16px;overflow-x:auto"><table class="detail-table"><tr><th>人員</th>`;
+    sNames.forEach(s => html += `<th>${s}</th>`);
+    html += `<th>總計</th></tr>`;
+    operators.forEach(op => {
+      const shortName = op.replace(/師傅$/, '');
+      html += `<tr><td style="font-weight:700">${shortName}</td>`;
+      let opTotal = 0, opPass = 0;
+      sNames.forEach(s => {
+        const recs = allRecords.filter(r => r.operator === op && r.station === s);
+        let sp = 0, st = 0;
+        recs.forEach(r => { sp += r.summary.passCount||0; st += (r.summary.passCount||0) + (r.summary.failCount||0) + (r.summary.criticalCount||0) + ((r.summary.defects&&r.summary.defects.length>0)?1:0); });
+        opTotal += st; opPass += sp;
+        const rate = st > 0 ? (sp / st * 100) : -1;
+        if (rate < 0) html += `<td style="color:#ccc">-</td>`;
+        else html += `<td style="color:${rate>=90?'#27AE60':rate>=70?'#E67E22':'#E74C3C'};font-weight:700">${rate.toFixed(0)}%</td>`;
+      });
+      const totalRate = opTotal > 0 ? (opPass / opTotal * 100) : 0;
+      html += `<td style="font-weight:700">${totalRate.toFixed(0)}%</td></tr>`;
+    });
+    html += `</table></div></div>`;
+  }
+
+  // Cross analysis: flavor × station
+  if (flavors.length > 1 && allRecords.length > 5) {
+    html += `<div class="card"><div class="card-title">🧀 口味 × 工作站 交叉分析</div>
+      <div style="padding:0 12px 16px;overflow-x:auto"><table class="detail-table"><tr><th>口味</th>`;
+    sNames.forEach(s => html += `<th>${s}</th>`);
+    html += `<th>總計</th></tr>`;
+    flavors.forEach(fl => {
+      html += `<tr><td style="font-weight:700">${fl}</td>`;
+      let flTotal = 0, flPass = 0;
+      sNames.forEach(s => {
+        const recs = allRecords.filter(r => r.flavor === fl && r.station === s);
+        let sp = 0, st = 0;
+        recs.forEach(r => { sp += r.summary.passCount||0; st += (r.summary.passCount||0) + (r.summary.failCount||0) + (r.summary.criticalCount||0) + ((r.summary.defects&&r.summary.defects.length>0)?1:0); });
+        flTotal += st; flPass += sp;
+        const rate = st > 0 ? (sp / st * 100) : -1;
+        if (rate < 0) html += `<td style="color:#ccc">-</td>`;
+        else html += `<td style="color:${rate>=90?'#27AE60':rate>=70?'#E67E22':'#E74C3C'};font-weight:700">${rate.toFixed(0)}%</td>`;
+      });
+      const totalRate = flTotal > 0 ? (flPass / flTotal * 100) : 0;
+      html += `<td style="font-weight:700">${totalRate.toFixed(0)}%</td></tr>`;
+    });
+    html += `</table></div></div>`;
+  }
+
+  // Daily trend
+  if (uniqueDates.length > 1) {
+    html += `<div class="card"><div class="card-title">📅 每日良率趨勢</div><div style="padding:0 16px 16px"><div class="bar-chart">`;
+    uniqueDates.forEach(d => {
+      const dayRecs = allRecords.filter(r => r.date === d);
+      let sp = 0, st = 0;
+      dayRecs.forEach(r => { sp += r.summary.passCount||0; st += (r.summary.passCount||0) + (r.summary.failCount||0) + (r.summary.criticalCount||0) + ((r.summary.defects&&r.summary.defects.length>0)?1:0); });
+      const rate = st > 0 ? (sp / st * 100) : 0;
+      const cls = rate >= 90 ? 'good' : rate >= 70 ? 'warn' : 'bad';
+      const shortDate = d.slice(5); // MM/DD
+      html += `<div class="bar-row"><span class="bar-label">${shortDate}</span><div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.max(rate,3)}%"><span class="bar-value">${rate.toFixed(0)}%</span></div></div><span class="bar-value-outside">${dayRecs.length}筆</span></div>`;
+    });
+    html += `</div></div></div>`;
+  }
+
+  // Anomaly detail list
+  const anomalies = allRecords.filter(r => r.summary.failCount > 0 || r.summary.criticalCount > 0 || (r.summary.defects && r.summary.defects.length > 0));
+  if (anomalies.length > 0) {
+    html += `<div class="card"><div class="card-title">⚠️ 異常明細（共 ${anomalies.length} 筆）</div>
+      <div style="padding:0 12px 16px;overflow-x:auto"><table class="detail-table">
+      <tr><th>日期</th><th>批次</th><th>口味</th><th>站</th><th>人員</th><th>狀態</th></tr>`;
+    anomalies.slice(0, 50).forEach(r => {
+      const shortName = r.operator.replace(/師傅$/, '').slice(-2);
+      const isCrit = r.summary.criticalCount > 0 || (r.summary.defects && r.summary.defects.length > 0);
+      const status = isCrit ? `<span style="color:var(--red)">🔴 嚴重</span>` : `<span style="color:#E67E22">🟡 異常</span>`;
+      const detail = [];
+      if (r.summary.defects && r.summary.defects.length) detail.push(r.summary.defects.join('、'));
+      if (r.notes) detail.push(r.notes);
+      html += `<tr><td>${r.date.slice(5)}</td><td>${r.batch}</td><td>${r.flavor||''}</td><td>${r.station}</td><td>${shortName}</td><td>${status}</td></tr>`;
+      if (detail.length) html += `<tr><td colspan="6" style="color:#888;font-size:11px;padding:2px 6px 6px">↳ ${detail.join('；')}</td></tr>`;
+    });
+    if (anomalies.length > 50) html += `<tr><td colspan="6" style="color:#999;text-align:center">...還有 ${anomalies.length-50} 筆</td></tr>`;
+    html += `</table></div></div>`;
+  }
+
+  container.innerHTML = html;
 }
 
 // ========== ADMIN ==========
 function renderAdmin() {
-  // station links
   const base = location.href.split('#')[0];
   const links = document.getElementById('stationLinks');
   links.innerHTML = [
@@ -598,10 +932,29 @@ function renderAdmin() {
     {hash:'烤箱',label:'🔥 烤箱站',desc:'張貼在烤箱旁'},
     {hash:'品判',label:'👨‍🍳 出爐品判',desc:'主廚使用'},
     {hash:'看板',label:'📊 當日看板',desc:'班長/主管/會報'},
+    {hash:'分析',label:'📈 數據分析',desc:'良率統計與趨勢'},
   ].map(s=>`<li><a href="#${s.hash}">${s.label}<span style="font-weight:400;font-size:12px;color:var(--gray-dark);margin-left:8px">${s.desc}</span></a></li>`).join('');
 
-  // operator list
   document.getElementById('opListInput').value = getOperators().join('\n');
+
+  // Show current work order in textarea
+  const wo = getWorkOrder();
+  if (wo.length) {
+    document.getElementById('csvInput').value = wo.map(b => `${b.round},${b.oven},${b.flavor}`).join('\n');
+  }
+}
+
+// File upload handler
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    document.getElementById('csvInput').value = ev.target.result;
+    parseWorkOrder();
+  };
+  reader.readAsText(file, 'UTF-8');
+  e.target.value = ''; // reset for re-upload
 }
 
 function parseWorkOrder() {
@@ -615,56 +968,101 @@ function parseWorkOrder() {
   let simpleFormat = true;
   for (const line of lines) {
     const parts = line.split(',').map(s=>s.trim());
-    if (parts.length >= 3 && !isNaN(parseInt(parts[0]))) {
-      batches.push({id:`${parts[0]}-${parts[1]}`, round:parseInt(parts[0]), oven:parts[1], flavor:parts[2]});
+    if (parts.length >= 3 && /^\d+$/.test(parts[0]) && /^[A-C]$/i.test(parts[1])) {
+      batches.push({id:`${parts[0]}-${parts[1].toUpperCase()}`, round:parseInt(parts[0]), oven:parts[1].toUpperCase(), flavor:parts[2]});
     } else { simpleFormat = false; break; }
   }
 
   if (!simpleFormat) {
-    // Try parsing from Google Sheets CSV format
+    // Parse Google Sheets CSV format
     batches.length = 0;
     let currentRound = 0;
-    const ovenMap = {0:'A', 1:'B', 2:'C'};
-    for (let i=0; i<lines.length; i++) {
+
+    // Strategy: find layer headers and extract oven-flavor mapping
+    // The CSV has 3 oven columns: A (cols ~2-7), B (cols ~9-14), C (cols ~16-21)
+    // Flavor appears on "口味" lines at cols 3, 10, 17 approximately
+
+    for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      // Detect round markers
-      const roundMatch = line.match(/(\d+)\s*[,\t]\s*輪/);
-      if (roundMatch) { currentRound = parseInt(roundMatch[1]); continue; }
-      // Detect layer headers with oven info
-      const layerMatch = line.match(/【烤箱([ABC])】/g);
-      if (layerMatch && currentRound > 0) {
-        // Next line should have flavors
-        if (i+2 < lines.length) {
-          const flavorLine = lines[i+2];
-          const parts = flavorLine.split(',');
-          layerMatch.forEach((m, idx) => {
-            const oven = m.match(/烤箱([ABC])/)[1];
-            const batchId = `${currentRound}-${oven}`;
-            if (!batches.find(b=>b.id===batchId)) {
-              // Find flavor in the parts
-              let flavor = '';
-              for (const p of parts) {
-                const trimmed = p.trim();
-                if (trimmed && trimmed !== '口味' && trimmed.length <= 4 && !/^\d/.test(trimmed) && !trimmed.includes('吋') && !trimmed.includes('小')) {
-                  flavor = trimmed; break;
+      const cols = line.split(',');
+
+      // Detect round marker: column 1 has a number, nearby line has "輪"
+      if (cols.length > 1 && /^\d+$/.test(cols[1].trim())) {
+        const roundNum = parseInt(cols[1].trim());
+        // Check if same row or next row contains "輪"
+        if (line.includes('輪') || (i+1 < lines.length && lines[i+1].includes('輪'))) {
+          currentRound = roundNum;
+        }
+      }
+
+      // Detect first layer header per round (contains 烤箱A/B/C)
+      if (line.includes('【烤箱') && line.includes('第 1 層')) {
+        // Find the flavor lines - look for "口味" in next few lines
+        for (let j = i+1; j < Math.min(i+4, lines.length); j++) {
+          const fLine = lines[j];
+          if (fLine.includes('口味')) {
+            const fCols = fLine.split(',');
+            // Extract flavors for each oven
+            const ovenFlavors = [];
+            for (let c = 0; c < fCols.length; c++) {
+              if (fCols[c].trim() === '口味' && c+1 < fCols.length) {
+                const flavor = fCols[c+1].trim();
+                if (flavor) ovenFlavors.push(flavor);
+              }
+            }
+
+            // Map flavors to ovens A, B, C
+            const ovenLetters = ['A', 'B', 'C'];
+            ovenFlavors.forEach((fl, idx) => {
+              if (idx < 3 && currentRound > 0) {
+                const batchId = `${currentRound}-${ovenLetters[idx]}`;
+                if (!batches.find(b => b.id === batchId)) {
+                  batches.push({id: batchId, round: currentRound, oven: ovenLetters[idx], flavor: fl});
                 }
               }
-              if (flavor) batches.push({id:batchId, round:currentRound, oven, flavor});
-            }
-          });
+            });
+            break;
+          }
         }
+      }
+    }
+
+    // If still no results, try to find date and flavor summary on right side
+    if (batches.length === 0) {
+      // Fallback: look for pattern like "天,1.0" or "原巴,1.0" on right columns
+      const flavorCounts = [];
+      for (const line of lines) {
+        const cols = line.split(',');
+        // Look for columns near the right side with flavor + count pattern
+        for (let c = 20; c < cols.length - 1; c++) {
+          const name = cols[c].trim();
+          const count = parseFloat(cols[c+1]);
+          if (name && name.length <= 4 && !isNaN(count) && count > 0 && count === Math.floor(count)
+              && !name.includes('@') && !name.includes('吋') && !/\d/.test(name)) {
+            flavorCounts.push(name);
+          }
+        }
+      }
+      // Group and create simple batches from unique flavors
+      if (flavorCounts.length > 0) {
+        const uniqueFlavors = [...new Set(flavorCounts)];
+        const ovenLetters = ['A','B','C'];
+        let round = 1, ovenIdx = 0;
+        uniqueFlavors.forEach(fl => {
+          batches.push({id:`${round}-${ovenLetters[ovenIdx]}`, round, oven:ovenLetters[ovenIdx], flavor:fl});
+          ovenIdx++;
+          if (ovenIdx >= 3) { ovenIdx = 0; round++; }
+        });
       }
     }
   }
 
   if (batches.length === 0) {
-    showNotify('無法解析工單，請使用簡易格式','warn');
+    showNotify('無法解析工單，請使用簡易格式（每行：輪次,烤箱,口味）','warn');
     return;
   }
 
-  // Sort
   batches.sort((a,b) => a.round-b.round || a.oven.localeCompare(b.oven));
-
   localStorage.setItem('bakery_workorder', JSON.stringify({date:dateStr, batches}));
   showNotify(`✅ 已匯入 ${batches.length} 個批次`,'success');
   document.getElementById('csvInput').value = batches.map(b=>`${b.round},${b.oven},${b.flavor}`).join('\n');
@@ -679,18 +1077,30 @@ function saveOperators() {
 
 // ========== EXPORT ==========
 function exportData() {
-  const records=getRecords().filter(r=>r.date===dateStr);
-  if(!records.length){showNotify('今日尚無記錄','warn');return}
-  let csv='\uFEFF日期,時間,操作人員,工作站,批次,口味,合格數,異常數,嚴重數,外觀不良,備註,原始數據\n';
-  records.forEach(r=>{
-    csv+=`${r.date},${r.timestamp},${r.operator},${r.station},${r.batch},${r.flavor||''},`;
-    csv+=`${r.summary.passCount},${r.summary.failCount},${r.summary.criticalCount},`;
-    csv+=`"${(r.summary.defects||[]).join('、')}","${r.notes||''}","${JSON.stringify(r.data).replace(/"/g,'""')}"\n`;
+  const viewDateStr = fmtDate(dashViewDate);
+  const records = getRecords().filter(r => r.date === viewDateStr);
+  if(!records.length){showNotify('此日期尚無記錄','warn');return}
+  downloadCSV(records, `生產監測_${viewDateStr.replace(/\//g,'')}.csv`);
+}
+
+function exportAllData() {
+  const records = getRecords();
+  if(!records.length){showNotify('尚無任何記錄','warn');return}
+  downloadCSV(records, `生產監測_全部_${dateStr.replace(/\//g,'')}.csv`);
+}
+
+function downloadCSV(records, filename) {
+  let csv = '\uFEFF日期,時間,操作人員,工作站,批次,口味,合格數,異常數,嚴重數,外觀不良,備註,原始數據\n';
+  records.forEach(r => {
+    csv += `${r.date},${r.timestamp},${r.operator},${r.station},${r.batch},${r.flavor||''},`;
+    csv += `${r.summary.passCount},${r.summary.failCount},${r.summary.criticalCount},`;
+    csv += `"${(r.summary.defects||[]).join('、')}","${r.notes||''}","${JSON.stringify(r.data).replace(/"/g,'""')}"\n`;
   });
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download=`生產監測_${dateStr.replace(/\//g,'')}.csv`;
-  a.click(); showNotify('✅ CSV 已下載','success');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+  a.download = filename;
+  a.click();
+  showNotify('✅ CSV 已下載','success');
 }
 
 // ========== NOTIFY ==========
